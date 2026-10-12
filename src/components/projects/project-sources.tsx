@@ -22,7 +22,7 @@ export function SourcesSection({ project }: { project: Project }) {
   const { data: spaces = [] } = useConfluenceSpaces(true)
   const { data: repositories = [] } = useGitlabProjects(true)
   const { patch } = useProjectMutations()
-  const attach = (sources: ProjectSources) => patch.mutate({ id: project.id, ...sources })
+  const attach = (sources: ProjectSources) => patch.trigger({ id: project.id, ...sources })
 
   return (
     <section className="space-y-4">

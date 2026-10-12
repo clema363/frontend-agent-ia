@@ -212,7 +212,7 @@ function ColorPicker({ label, presets, value, onChange }: ColorPickerProps) {
 
 function ModelSection() {
   // GET /health also returns the LLM configuration.
-  const { data: health, isPending, isError } = useHealth()
+  const { data: health, isLoading, isError } = useHealth()
   const testAi = useTestAi()
 
   return (
@@ -220,7 +220,7 @@ function ModelSection() {
       title="AI model"
       description="Check the model configured by your administrator and test its availability."
     >
-      {isPending && <p className="p-4 text-sm text-muted-foreground">Checking the AI service…</p>}
+      {isLoading && <p className="p-4 text-sm text-muted-foreground">Checking the AI service…</p>}
       {isError && <p role="alert" className="p-4 text-sm text-destructive">Could not check the AI service.</p>}
       {testAi.isError && <p role="alert" className="p-4 text-sm text-destructive">The connection test failed. Please try again.</p>}
       {health && (
@@ -249,7 +249,7 @@ function ModelSection() {
               {testAi.data.ok ? 'OK' : 'Failed'} · {testAi.data.latencyMs} ms
             </span>
           )}
-          <Button variant="outline" disabled={testAi.isPending || !health?.llmConfigured} onClick={() => testAi.mutate()}>
+          <Button variant="outline" disabled={testAi.isLoading || !health?.llmConfigured} onClick={() => testAi.trigger()}>
             <PlayCircle data-icon="inline-start" />
             Test connection
           </Button>
@@ -317,8 +317,8 @@ function ToolConnections({ tool }: { tool: SourceTool }) {
                 variant="ghost"
                 size="icon-sm"
                 aria-label={`Delete ${connection.displayName ?? connection.siteUrl}`}
-                disabled={deleteConnection.isPending}
-                onClick={() => deleteConnection.mutate(connection.id)}
+                disabled={deleteConnection.isLoading}
+                onClick={() => deleteConnection.trigger(connection.id)}
               >
                 <Trash2 />
               </Button>
@@ -340,16 +340,11 @@ function NewConnectionForm({ tool }: { tool: SourceTool }) {
 
   const submit = (event: FormEvent) => {
     event.preventDefault()
-    createConnection.mutate(
-      { siteUrl, pat, displayName: displayName || undefined },
-      {
-        onSuccess: () => {
-          setDisplayName('')
-          setSiteUrl('')
-          setPat('')
-        },
-      },
-    )
+    createConnection.trigger({ siteUrl, pat, displayName: displayName || undefined }).unwrap().then(() => {
+      setDisplayName('')
+      setSiteUrl('')
+      setPat('')
+    }).catch(() => undefined)
   }
 
   return (
@@ -380,7 +375,7 @@ function NewConnectionForm({ tool }: { tool: SourceTool }) {
         <p className="text-sm text-destructive">Could not save the connection: {createConnection.error.message}</p>
       )}
       <div className="flex justify-end">
-        <Button type="submit" disabled={createConnection.isPending}>
+        <Button type="submit" disabled={createConnection.isLoading}>
           <Plus data-icon="inline-start" />
           Add connection
         </Button>

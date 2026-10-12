@@ -1,6 +1,6 @@
 # AI Agent Frontend — Atlas
 
-React + Vite + TypeScript starter with Tailwind CSS, shadcn/ui, TanStack Query and React Router.
+React + Vite + TypeScript starter with Tailwind CSS, shadcn/ui, Redux Toolkit and RTK Query and React Router.
 
 ## Getting started
 
@@ -29,6 +29,7 @@ read from `localStorage` or from `?token=` on the SSO callback.
 ```sh
 npm run lint
 npm run typecheck
+npm test
 npm run build
 npm run preview
 ```
@@ -43,16 +44,17 @@ npm run preview
 - `src/components/source-badge.tsx`: Jira, Confluence and GitLab source badges.
 - `src/components/ui/`: shadcn/ui components that can be edited within the project.
 - `src/api/endpoints.ts`: one function per FastAPI backend route.
-- `src/api/hooks.ts`: TanStack Query hooks used by the screens.
+- `src/api/hooks.ts`: Redux Toolkit and RTK Query hooks used by the screens.
 - `src/api/client.ts`: HTTP requests to the backend or mock server, depending on `VITE_API_MOCK`.
 - `src/api/mock-server.ts` and `src/api/fixtures/*.json`: in-memory mock backend with the same routes as FastAPI.
 - `src/lib/domain.ts`: API types and workflow constants.
 - `src/lib/diff.ts`: line-by-line diff used for refinement before/after comparisons.
 - `src/lib/story-workflow.ts`: mapping between columns and stages.
-- `src/lib/query-client.ts`: TanStack Query cache configuration.
+- `src/api/rtk-api.ts`: RTK Query endpoints, cache tags, invalidation and optimistic preferences.
+- `src/lib/store.ts`: Redux store, RTK Query middleware and typed Redux hooks.
 - `src/lib/utils.ts`: styling utilities.
 - `src/App.tsx`: route definitions.
-- `src/main.tsx`: React Router and TanStack Query providers.
+- `src/main.tsx`: React Router and React Redux providers.
 - `src/index.css`: Tailwind and shadcn/ui theme.
 
 The `@/` alias points to `src/`. TypeScript runs in strict mode.
@@ -67,4 +69,14 @@ npx shadcn@latest add input
 
 When hosting, redirect unknown URLs to `index.html` to support direct navigation to React Router routes.
 
-Documentation: [shadcn/ui with Vite](https://ui.shadcn.com/docs/installation/vite), [React Router](https://reactrouter.com/start/declarative/installation), [TanStack Query](https://tanstack.com/query/latest/docs/framework/react/overview).
+Documentation: [shadcn/ui with Vite](https://ui.shadcn.com/docs/installation/vite), [React Router](https://reactrouter.com/start/declarative/installation), [Redux Toolkit and RTK Query](https://redux-toolkit.js.org/rtk-query/overview).
+
+## Shared state and API data
+
+API responses live in the RTK Query cache within the Redux store. Screens use the domain hooks in `src/api/hooks.ts`, which expose `data`, `isLoading`, `isError` and mutations through `trigger(payload)`. For actions that depend on success, use `trigger(payload).unwrap().then(...)` and handle errors with `.catch(...)`.
+
+Cache tags refresh affected data after mutations. Changing the business role reloads permission-dependent data. Preferences update immediately and are restored if saving fails. Stories are polled every two seconds while an agent is working. The existing HTTP client handles JWTs, key conversion and demo mode.
+
+Local UI state remains in React hooks, with the theme in its context. API data is not duplicated in additional Redux slices. Redux DevTools can inspect the cache and dispatched actions in development.
+
+`npm test` runs cache and React hook integration tests, followed by the journal date tests.

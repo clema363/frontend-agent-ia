@@ -32,7 +32,7 @@ const column = 'mx-auto w-full max-w-4xl'
 // Project page: /projects/:projectId/:tab? with one tab per configuration topic.
 export function ProjectPage() {
   const { projectId = '', tab = 'overview' } = useParams()
-  const { data: projects, isPending } = useProjects()
+  const { data: projects, isLoading } = useProjects()
   const { data: me } = useMe()
   const { delete: deleteProject } = useProjectMutations()
   const navigate = useNavigate()
@@ -43,8 +43,8 @@ export function ProjectPage() {
   if (!project) {
     return (
       <>
-        <PageHeader title={isPending ? '…' : 'Not found'} icon={FolderOpen} parent={{ label: 'Projects', to: '/projects' }} />
-        {!isPending && (
+        <PageHeader title={isLoading ? '…' : 'Not found'} icon={FolderOpen} parent={{ label: 'Projects', to: '/projects' }} />
+        {!isLoading && (
           <p className="text-sm text-muted-foreground">
             This project does not exist or you are not a member. <Link to="/projects" className="text-primary hover:underline">Back to projects</Link>
           </p>
@@ -114,7 +114,7 @@ export function ProjectPage() {
         project={project}
         open={deleting}
         onOpenChange={setDeleting}
-        onDelete={(id) => deleteProject.mutate(id, { onSuccess: () => navigate('/projects') })}
+        onDelete={(id) => deleteProject.trigger(id).unwrap().then(() => navigate('/projects')).catch(() => undefined)}
       />
     </>
   )

@@ -14,6 +14,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { kanbanColumnStyle, useTheme } from '@/lib/theme'
 import { cn } from '@/lib/utils'
 import { ApiError } from '@/api/client'
+import { toApiError } from '@/api/rtk-api'
 import { useJournal, useMe, useProjects, useSavePreferences, useStories, useStoryMutations, useUpdateMe } from '@/api/hooks'
 import { issueTypes, kanbanColumns, roles, type NewStoryRequest, type Role, type UserStory } from '@/lib/domain'
 import { canReview, stageForColumn, storyStatus } from '@/lib/story-workflow'
@@ -94,19 +95,17 @@ export function KanbanPage() {
       issueTypeName: input.type,
       force,
     }
-    mutations.create.mutate(body, {
-      onSuccess: (story) => {
-        onSuccess()
-        openStory(story.id)
-      },
-      onError: (cause) => {
-        // 409: the requirement resembles an existing story; ask for confirmation before forcing creation.
-        if (cause instanceof ApiError && cause.status === 409 && !force) {
-          if (window.confirm(`${describe(cause)}\n\nCreate the US anyway?`)) createStory(input, true)
-          return
-        }
-        onError(cause)
-      },
+    mutations.create.trigger(body).unwrap().then((story) => {
+      onSuccess()
+      openStory(story.id)
+    }).catch((error: unknown) => {
+      const cause = toApiError(error)
+      // 409: confirm before creating a story that resembles an existing requirement.
+      if (cause.status === 409 && !force) {
+        if (window.confirm(`${describe(cause)}\n\nCreate the US anyway?`)) createStory(input, true)
+        return
+      }
+      onError(cause)
     })
   }
 
@@ -114,7 +113,7 @@ export function KanbanPage() {
   const view: KanbanView = searchParams.get('view') === 'list' || (!searchParams.get('view') && me?.preferences?.kanbanView === 'list') ? 'list' : 'board'
   function setView(value: KanbanView) {
     updateParams({ view: value })
-    savePreferences.mutate({ kanbanView: value })
+    savePreferences.trigger({ kanbanView: value })
   }
 
   // Comment counts per story, read from the journal.
@@ -155,7 +154,7 @@ export function KanbanPage() {
             ))}
           </SelectContent>
         </Select>
-        <Select items={roleOptions} value={role} onValueChange={(value) => value && updateMe.mutate({ role: value as Role })}>
+        <Select items={roleOptions} value={role} onValueChange={(value) => value && updateMe.trigger({ role: value as Role })}>
           <SelectTrigger className="w-36 justify-start" aria-label="View as">
             <span className="text-muted-foreground">View as</span>
             <SelectValue className="flex-1 text-left" />

@@ -63,7 +63,7 @@ export function JournalPage() {
     )
   }
 
-  const { data: journal = [], isPending, isError } = useJournal()
+  const { data: journal = [], isLoading, isError } = useJournal()
   const view = searchParams.get('view') === 'analysis' ? 'analysis' : 'events'
   const invalidRange = filters.period === 'custom' && Boolean(filters.from && filters.to && filters.from > filters.to)
   const hasFilters = Object.values(filters).some((value) => value !== ALL && value !== '')
@@ -135,10 +135,10 @@ export function JournalPage() {
         {invalidRange && <p role="alert" className="text-sm text-destructive">The end date must be on or after the start date.</p>}
         {isError && <p role="alert" className="text-sm text-destructive">Could not load the journal. Please try again.</p>}
 
-        <dl className="grid gap-px overflow-hidden rounded-lg border bg-border sm:grid-cols-3" aria-busy={isPending}>
-          <Kpi icon={ScrollText} label="Events" value={isPending ? '…' : entries.length} hint="in the selected period" />
-          <Kpi icon={CircleCheck} label="Approvals" value={isPending ? '…' : count('approved')} hint="documents validated" />
-          <Kpi icon={CircleX} label="Changes requested" value={isPending ? '…' : count('refused', 'rejected')} hint={`${count('message')} chat messages`} />
+        <dl className="grid gap-px overflow-hidden rounded-lg border bg-border sm:grid-cols-3" aria-busy={isLoading}>
+          <Kpi icon={ScrollText} label="Events" value={isLoading ? '…' : entries.length} hint="in the selected period" />
+          <Kpi icon={CircleCheck} label="Approvals" value={isLoading ? '…' : count('approved')} hint="documents validated" />
+          <Kpi icon={CircleX} label="Changes requested" value={isLoading ? '…' : count('refused', 'rejected')} hint={`${count('message')} chat messages`} />
         </dl>
 
         <Tabs value={view} onValueChange={(value) => setSearchParams((current) => {
@@ -159,7 +159,7 @@ export function JournalPage() {
               {entries.length ? (
                 <Timeline entries={entries} storyOf={storyOf} />
               ) : (
-                <Empty icon={Inbox}>{isPending ? 'Loading the journal…' : isError ? 'The journal is unavailable.' : 'No event matches these filters.'}</Empty>
+                <Empty icon={Inbox}>{isLoading ? 'Loading the journal…' : isError ? 'The journal is unavailable.' : 'No event matches these filters.'}</Empty>
               )}
             </section>
           </TabsContent>

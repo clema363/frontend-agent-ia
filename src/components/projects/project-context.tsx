@@ -53,12 +53,12 @@ type MapEditorProps = {
 function MapEditor({ projectId, map }: MapEditorProps) {
   const [draft, setDraft] = useState(map.content)
   const { init, validate } = useContextMutations(projectId)
-  const regenerating = init.isPending
+  const regenerating = init.isLoading
   const validated = map.validated && draft === map.content
 
   function regenerate() {
     // The Cartographer agent reads the attached sources again and regenerates this map.
-    init.mutate([map.kind])
+    init.trigger([map.kind])
   }
 
   return (
@@ -89,7 +89,7 @@ function MapEditor({ projectId, map }: MapEditorProps) {
       </div>
 
       <div className="flex items-center justify-between gap-2">
-        <Button onClick={() => validate.mutate({ kind: map.kind, content: draft })} disabled={validated || regenerating}>
+        <Button onClick={() => validate.trigger({ kind: map.kind, content: draft })} disabled={validated || regenerating}>
           <CircleCheck data-icon="inline-start" />
           Validate
         </Button>

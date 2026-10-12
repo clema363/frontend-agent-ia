@@ -1,8 +1,9 @@
 import { useState, type ReactNode } from 'react'
 import { Link, useLocation, useParams } from 'react-router'
-import { useQueryClient } from '@tanstack/react-query'
+import { useAppDispatch } from '@/lib/store'
+import { atlasApi, toApiError } from '@/api/rtk-api'
 import { ArrowLeft, FolderOpen, SquareKanban, Tag, User } from 'lucide-react'
-import { keys, useFieldConfig, useMe, useProjects, useStories, useStoryMutations } from '@/api/hooks'
+import { useFieldConfig, useMe, useProjects, useStories, useStoryMutations } from '@/api/hooks'
 import { ColumnIcon, IssueTypeIcon, PriorityIcon } from '@/components/kanban/issue-meta'
 import { StoryDetail, type StoryActions } from '@/components/kanban/story-detail'
 import { PageHeader } from '@/components/layout/page-header'
@@ -13,10 +14,10 @@ import { kanbanColumns, type UserStory } from '@/lib/domain'
 export function StoryPage() {
   const { storyId } = useParams()
   const location = useLocation()
-  const { data: stories = [], isPending, isError } = useStories()
+  const { data: stories = [], isLoading, isError } = useStories()
   const { data: me } = useMe()
   const mutations = useStoryMutations()
-  const queryClient = useQueryClient()
+  const dispatch = useAppDispatch()
   const [error, setError] = useState<string>()
   const story = stories.find((item) => item.id === storyId)
   const role = me?.role ?? 'PO'
@@ -24,18 +25,24 @@ export function StoryPage() {
   const returnTo = typeof savedReturn === 'string' && (savedReturn === '/kanban' || savedReturn.startsWith('/kanban?'))
     ? savedReturn
     : '/kanban'
-  const feedback = { onSuccess: () => setError(undefined), onError: (cause: Error) => setError(cause.message) }
+  const onSuccess = () => setError(undefined)
+  const onError = (cause: unknown) => setError(toApiError(cause).message)
   const actions: StoryActions = {
-    onApprove: (id) => mutations.decide.mutate({ id, decision: 'approve' }, feedback),
-    onComment: (id, comment) => mutations.decide.mutate({ id, decision: 'refuse', comment }, feedback),
-    onChat: (id, message) => mutations.sendMessage.mutate({ id, message }, feedback),
-    // Keep document edits in the local cache.
-    onEdit: (id, stageId, markdown) => queryClient.setQueryData<UserStory[]>(keys.stories, (list) =>
-      list?.map((item) => {
-        const stage = item.id === id ? item.stages[stageId] : undefined
-        return stage ? { ...item, stages: { ...item.stages, [stageId]: { ...stage, markdown, editedBy: role, review: undefined } } } : item
-      }),
-    ),
+    onApprove: (id) => { void mutations.decide.trigger({ id, decision: 'approve' }).unwrap().then(onSuccess).catch(onError) },
+    onComment: (id, comment) => { void mutations.decide.trigger({ id, decision: 'refuse', comment }).unwrap().then(onSuccess).catch(onError) },
+    onChat: (id, message) => { void mutations.sendMessage.trigger({ id, message }).unwrap().then(onSuccess).catch(onError) },
+    // Document edits remain local until a server save endpoint is available.
+    onEdit: (id, stageId, markdown) => {
+      dispatch(atlasApi.util.updateQueryData('getStories', undefined, (list) => {
+        const story = list.find((item) => item.id === id)
+        const stage = story?.stages[stageId]
+        if (stage) {
+          stage.markdown = markdown
+          stage.editedBy = role
+          stage.review = undefined
+        }
+      }))
+    },
   }
 
   return (
@@ -52,7 +59,7 @@ export function StoryPage() {
         }
       />
       {error && <Alert variant="destructive" className="mb-6"><AlertDescription>{error}</AlertDescription></Alert>}
-      {isPending ? <p className="py-12 text-muted-foreground">Loading issue…</p> : isError ? (
+      {isLoading ? <p className="py-12 text-muted-foreground">Loading issue…</p> : isError ? (
         <Alert variant="destructive"><AlertDescription>Unable to load this issue. Please try again.</AlertDescription></Alert>
       ) : !story ? (
         <div className="space-y-4 py-12">

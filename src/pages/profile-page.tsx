@@ -27,7 +27,7 @@ export function ProfilePage() {
     <>
       <PageHeader title="Profile" icon={User} />
       <div className="mx-auto w-full max-w-3xl space-y-8">
-        {me.isPending && <p role="status" className="text-sm text-muted-foreground">Loading your profile…</p>}
+        {me.isLoading && <p role="status" className="text-sm text-muted-foreground">Loading your profile…</p>}
         {me.isError && (
           <div className="space-y-3">
             <p role="alert" className="text-sm text-destructive">Could not load your profile.</p>
@@ -69,8 +69,8 @@ export function ProfilePage() {
                     <Label htmlFor="profile-role">Workspace role</Label>
                     <p id="profile-role-help" className="text-xs text-muted-foreground">Used for your Kanban view and story approvals.</p>
                   </div>
-                  <Select items={roleOptions} value={me.data.role} disabled={updateMe.isPending} onValueChange={(value) => {
-                    if (value && value !== me.data?.role) updateMe.mutate({ role: value as Role })
+                  <Select items={roleOptions} value={me.data.role} disabled={updateMe.isLoading} onValueChange={(value) => {
+                    if (value && value !== me.data?.role) updateMe.trigger({ role: value as Role })
                   }}>
                     <SelectTrigger id="profile-role" aria-describedby="profile-role-help" className="w-full sm:w-48">
                       <SelectValue />
@@ -80,7 +80,7 @@ export function ProfilePage() {
                     </SelectContent>
                   </Select>
                 </div>
-                {updateMe.isPending && <p role="status" className="px-4 pb-4 text-xs text-muted-foreground">Saving your role…</p>}
+                {updateMe.isLoading && <p role="status" className="px-4 pb-4 text-xs text-muted-foreground">Saving your role…</p>}
                 {updateMe.isSuccess && <p role="status" className="px-4 pb-4 text-xs text-muted-foreground">Your role has been updated.</p>}
                 {updateMe.isError && <p role="alert" className="px-4 pb-4 text-xs text-destructive">Could not update your role. Please try again.</p>}
               </div>
@@ -91,7 +91,7 @@ export function ProfilePage() {
                 <h2 id="profile-projects-heading" className="text-sm font-medium">Your projects</h2>
                 <p className="text-sm text-muted-foreground">Projects you belong to and your roles in each one.</p>
               </div>
-              {projects.isPending ? <p role="status" className="text-sm text-muted-foreground">Loading your projects…</p> : projects.isError ? (
+              {projects.isLoading ? <p role="status" className="text-sm text-muted-foreground">Loading your projects…</p> : projects.isError ? (
                 <div className="space-y-3">
                   <p role="alert" className="text-sm text-destructive">Could not load your projects.</p>
                   <Button variant="outline" size="sm" onClick={() => projects.refetch()}>Try again</Button>

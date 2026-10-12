@@ -7,11 +7,11 @@ import { cn } from '@/lib/utils'
 
 export function AdminUsers() {
   const { data: me } = useMe()
-  const { data: users = [], isPending, isError } = useUsers(Boolean(me?.isAdmin))
+  const { data: users = [], isLoading, isError } = useUsers(Boolean(me?.isAdmin))
   const updateUser = useUpdateUser()
 
   function update(id: string, changes: Pick<Partial<AppUser>, 'isAdmin' | 'isActive'>) {
-    updateUser.mutate({ id, ...changes })
+    updateUser.trigger({ id, ...changes })
   }
 
   return (
@@ -19,10 +19,10 @@ export function AdminUsers() {
       <SectionHeader title="App users" count={users.length}>
         Manage accounts and administrator access across the application. Project roles are managed in each project's Members tab.
       </SectionHeader>
-      {isPending && <p className="text-sm text-muted-foreground">Loading users…</p>}
+      {isLoading && <p className="text-sm text-muted-foreground">Loading users…</p>}
       {isError && <p role="alert" className="text-sm text-destructive">Could not load users.</p>}
       {updateUser.isError && <p role="alert" className="text-sm text-destructive">Could not update this account. Please try again.</p>}
-      {!isPending && !isError && users.length === 0 && <p className="text-sm text-muted-foreground">No users yet.</p>}
+      {!isLoading && !isError && users.length === 0 && <p className="text-sm text-muted-foreground">No users yet.</p>}
       <ul className="divide-y rounded-xl border">
         {users.map((user) => {
           const isMe = user.id === me?.id
@@ -44,14 +44,14 @@ export function AdminUsers() {
                   id={`${user.id}-admin`}
                   label="Admin"
                   checked={user.isAdmin}
-                  disabled={isMe || updateUser.isPending}
+                  disabled={isMe || updateUser.isLoading}
                   onCheckedChange={(checked) => update(user.id, { isAdmin: checked })}
                 />
                 <SwitchField
                   id={`${user.id}-active`}
                   label="Active"
                   checked={user.isActive}
-                  disabled={isMe || updateUser.isPending}
+                  disabled={isMe || updateUser.isLoading}
                   onCheckedChange={(checked) => update(user.id, { isActive: checked })}
                 />
               </div>

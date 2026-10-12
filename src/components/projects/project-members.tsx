@@ -19,7 +19,7 @@ export function ProjectMembers({ project }: { project: Project }) {
   const mutations = useMemberMutations(project.id)
 
   function toggleRole(member: ProjectMember, role: Role) {
-    mutations.update.mutate({ userId: member.userId, roles: toggleInList(member.roles, role) })
+    mutations.update.trigger({ userId: member.userId, roles: toggleInList(member.roles, role) })
   }
 
   return (
@@ -57,7 +57,7 @@ export function ProjectMembers({ project }: { project: Project }) {
                 disabled={isMe}
                 aria-label={`Remove ${member.name}`}
                 title="Remove from the project"
-                onClick={() => mutations.remove.mutate(member.userId)}
+                onClick={() => mutations.remove.trigger(member.userId)}
                 className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
               >
                 <UserMinus />
@@ -70,7 +70,7 @@ export function ProjectMembers({ project }: { project: Project }) {
       <InviteForm
         users={appUsers}
         memberIds={members.map((member) => member.userId)}
-        onInvite={(member) => mutations.invite.mutate(member)}
+        onInvite={(member) => mutations.invite.trigger(member)}
       />
     </div>
   )

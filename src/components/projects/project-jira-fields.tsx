@@ -112,8 +112,8 @@ function FieldsForm({ project, groups, config }: FieldsFormProps) {
         </p>
         <Button
           size="sm"
-          disabled={!dirty || save.isPending}
-          onClick={() => save.mutate({ enabledFields: selected, priorityMapping: mapping })}
+          disabled={!dirty || save.isLoading}
+          onClick={() => save.trigger({ enabledFields: selected, priorityMapping: mapping })}
         >
           <Save data-icon="inline-start" />
           Save

@@ -36,7 +36,7 @@ export function ProjectsPage() {
   }
 
   function createProject(input: NewProjectInput) {
-    mutations.create.mutate(input, { onSuccess: (project) => navigate(`/projects/${project.id}`) })
+    mutations.create.trigger(input).unwrap().then((project) => navigate(`/projects/${project.id}`)).catch(() => undefined)
   }
 
   return (
