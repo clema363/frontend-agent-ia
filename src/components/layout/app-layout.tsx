@@ -5,7 +5,7 @@ import { PageHeaderContext } from '@/components/layout/page-header-context'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { TooltipProvider } from '@/components/ui/tooltip'
 
-// Comme Linear : la barre latérale est posée sur le fond, la vue est un panneau encadré en pleine largeur.
+// Like Linear: the sidebar sits on the background and the view is a full-width framed panel.
 export function AppLayout() {
   const [headerContainer, setHeaderContainer] = useState<HTMLDivElement | null>(null)
 

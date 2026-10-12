@@ -1,6 +1,6 @@
 export { cn } from "cn"
 
-// Pourcentage arrondi, 0 quand il n'y a rien à compter.
+// Rounded percentage; 0 when there is nothing to count.
 export function progressOf(done: number, total: number) {
   return total ? Math.round((done / total) * 100) : 0
 }
@@ -12,7 +12,7 @@ const timeUnits: [Intl.RelativeTimeFormatUnit, number][] = [
   ['minute', 60],
 ]
 
-// « 2 hours ago », « yesterday »… à partir d'une date ISO.
+// Relative time (2 hours ago, yesterday, etc.) from an ISO date.
 export function timeAgo(iso: string) {
   const seconds = (new Date(iso).getTime() - Date.now()) / 1000
   for (const [unit, size] of timeUnits) {

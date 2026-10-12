@@ -23,13 +23,13 @@ import { stages, type Role, type StageId, type StageOutput, type UserStory } fro
 import { stageForColumn } from '@/lib/story-workflow'
 import { cn, timeAgo } from '@/lib/utils'
 
-// Un onglet par étape, plus celui de l'IA de développement une fois le plan envoyé.
+// One tab per stage, plus the coding agent tab once the plan has been sent.
 type Tab = StageId | 'agent'
 
 export type StoryActions = {
-  // decide et messages visent toujours l'étape en cours de la US.
+  // decide and messages always target the story's current stage.
   onApprove: (storyId: string) => void
-  // Un commentaire renvoie le document de l'étape en cours pour modification (refus au sens du backend).
+  // A comment returns the current stage document for revision (rejection in backend terms).
   onComment: (storyId: string, comment: string) => void
   onEdit: (storyId: string, stageId: StageId, markdown: string) => void
   onChat: (storyId: string, message: string) => void
@@ -300,8 +300,8 @@ function ReviewBar({ output, isCurrent, canValidate, approvers, isPlan, editing,
   )
 }
 
-// Commentaires entre personnes sur le document d'une étape, lus dans le journal de la US.
-// Commenter renvoie le document pour modification : on le reprend ensuite à la main ou via le chat de l'agent.
+// Human comments on a stage document, read from the story's journal.
+// Commenting returns the document for revision, either manually or through the agent chat.
 type CommentsProps = {
   story: UserStory
   stageId: StageId

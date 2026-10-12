@@ -33,7 +33,7 @@
     {
       "kind": "jira",
       "label": "Jira",
-      "content": "## Jira project TCAAS6804\n- Issue types: Story, Epic, Bug, Task, Spike\n- Workflow: To do → In progress → Review → Done\n- Stories are linked to an epic through \"Lien d'épopée\".\n\n## Writing conventions\n- Titles start with a verb.\n- Acceptance criteria use Given / When / Then.",
+      "content": "## Jira project TCAAS6804\n- Issue types: Story, Epic, Bug, Task, Spike\n- Workflow: To do → In progress → Review → Done\n- Stories are linked to an epic through \"Epic Link\".\n\n## Writing conventions\n- Titles start with a verb.\n- Acceptance criteria use Given / When / Then.",
       "validated": false,
       "validator_roles": [
         "PO",
@@ -75,7 +75,7 @@
     {
       "kind": "jira",
       "label": "Jira",
-      "content": "## Jira project TRP7120\n- Issue types: Story, Epic, Bug, Task, Spike\n- Workflow: To do → In progress → Review → Done\n- Stories are linked to an epic through \"Lien d'épopée\".\n\n## Writing conventions\n- Titles start with a verb.\n- Acceptance criteria use Given / When / Then.",
+      "content": "## Jira project TRP7120\n- Issue types: Story, Epic, Bug, Task, Spike\n- Workflow: To do → In progress → Review → Done\n- Stories are linked to an epic through \"Epic Link\".\n\n## Writing conventions\n- Titles start with a verb.\n- Acceptance criteria use Given / When / Then.",
       "validated": false,
       "validator_roles": [
         "PO",

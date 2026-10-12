@@ -29,12 +29,12 @@ const shortDayFormat = new Intl.DateTimeFormat('en', { day: 'numeric', month: 's
 const timeFormat = new Intl.DateTimeFormat('en', { hour: '2-digit', minute: '2-digit' })
 const seconds = (ms: number) => `${(ms / 1000).toFixed(1)} s`
 
-// Deux teintes de la couleur principale : entrée (contexte lu par l'agent) et sortie (document produit).
+// Two shades of the primary color: input (context read by the agent) and output (generated document).
 const inputColor = 'color-mix(in oklch, var(--primary) 35%, transparent)'
 const outputColor = 'var(--primary)'
 
 export function JournalPage() {
-  // Filtres dans l'URL (/journal?project=p-6804&us=us-112) : le Dashboard ou le Kanban peuvent y renvoyer.
+  // URL filters (/journal?project=p-6804&us=us-112) allow links from the Dashboard or Kanban.
   const [searchParams, setSearchParams] = useSearchParams()
   const filters = {
     project: searchParams.get('project') ?? ALL,
@@ -51,7 +51,7 @@ export function JournalPage() {
         const next = new URLSearchParams(current)
         if (!value || value === ALL) next.delete(key)
         else next.set(key, value)
-        // Une US d'un autre projet n'a plus de sens après un changement de projet.
+        // A story from another project is no longer relevant after switching projects.
         if (key === 'project') next.delete('us')
         if (key === 'period' && value !== 'custom') {
           next.delete('from')
@@ -239,7 +239,7 @@ function Legend() {
   )
 }
 
-// Barre horizontale entrée + sortie, survolable pour lire le détail.
+// Horizontal input/output bar with details on hover.
 function TokenBar({ input, output, max, children }: { input: number; output: number; max: number; children: ReactNode }) {
   const width = (value: number) => `${max ? (value / max) * 100 : 0}%`
   return (
@@ -335,10 +335,10 @@ function TokensByStory({ runs, stories }: { runs: JournalEntry[]; stories: UserS
   )
 }
 
-// Nombre d'événements par jour, personnes et agents empilés.
+// Daily event counts, with stacked human and agent activity.
 function ActivityByDay({ entries }: { entries: JournalEntry[] }) {
   const days = [...new Set(entries.map((entry) => journalDay(entry.at)))].sort()
-  // Tous les jours entre le premier et le dernier, même sans activité.
+  // Include every day between the first and last, even those without activity.
   const range: string[] = []
   if (days.length) {
     for (let day = new Date(`${days[0]}T00:00:00Z`); day <= new Date(`${days.at(-1)}T00:00:00Z`); day.setUTCDate(day.getUTCDate() + 1)) {
@@ -409,7 +409,7 @@ const actionColumns = [
   { label: 'Edits', actions: ['edited'] },
 ]
 
-// Tableau personne × action, et la consommation pour les agents.
+// Person-by-action table, including agent usage.
 function WhoDidWhat({ entries }: { entries: JournalEntry[] }) {
   const actors = [...new Set(entries.map((entry) => entry.actor))]
   const people = actors.filter((actor) => !entries.some((entry) => entry.actor === actor && isAgent(entry))).sort()
@@ -502,7 +502,7 @@ const actionIcons: Record<string, LucideIcon> = {
   message: MessageSquare,
 }
 
-// Événements groupés par jour.
+// Events grouped by day.
 function Timeline({ entries, storyOf }: { entries: JournalEntry[]; storyOf: (entry: JournalEntry) => UserStory | undefined }) {
   const days = [...new Set(entries.map((entry) => journalDay(entry.at)))]
 

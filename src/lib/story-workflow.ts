@@ -11,7 +11,7 @@ export function nextColumn(column: KanbanColumnId): KanbanColumnId {
 
 export type StoryStatus = 'agent-working' | 'to-review' | 'changes-requested' | 'sent-to-ai'
 
-// Où en est une US dans son étape courante.
+// Story status within its current stage.
 export function storyStatus(story: UserStory): StoryStatus {
   const stage = stageForColumn(story.column)
   if (!stage) return 'sent-to-ai'
@@ -20,7 +20,7 @@ export function storyStatus(story: UserStory): StoryStatus {
   return output.review?.decision === 'rejected' ? 'changes-requested' : 'to-review'
 }
 
-// Le document de l'étape courante est prêt et ce rôle fait partie de ceux qui le valident.
+// The current stage document is ready and this role is allowed to approve it.
 export function canReview(story: UserStory, role: Role) {
   return storyStatus(story) === 'to-review' && Boolean(stageForColumn(story.column)?.approvers.includes(role))
 }

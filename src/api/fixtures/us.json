@@ -7,7 +7,7 @@
     "priority": "High",
     "project_id": "p-6804",
     "column": "to-author",
-    "raw": "quand la banque rejette un paiement le trésorier doit être prévenu vite, avant le cut-off, sinon on rate la date de valeur",
+    "raw": "when the bank rejects a payment the treasurer must be notified quickly, before the cut-off, otherwise we miss the value date",
     "context_links": [
       "https://confluence.example.com/display/CASH/Payment+lifecycle"
     ],
@@ -36,7 +36,7 @@
     "priority": "Medium",
     "project_id": "p-6804",
     "column": "to-refine",
-    "raw": "export excel du journal pour la compta, avec les filtres",
+    "raw": "export the journal to Excel for accounting, with the filters",
     "context_links": [],
     "stages": {
       "authoring": {
@@ -89,7 +89,7 @@
     "priority": "High",
     "project_id": "p-6804",
     "column": "to-specify",
-    "raw": "voir les soldes en plusieurs devises sur le dashboard + total en EUR",
+    "raw": "show balances in multiple currencies on the dashboard + total in EUR",
     "context_links": [
       "https://confluence.example.com/display/CASH/FX+rates+policy"
     ],
@@ -150,7 +150,7 @@
     "priority": "Medium",
     "project_id": "p-6804",
     "column": "review-for-dev",
-    "raw": "le dashboard, le studio et le journal sont trop lents quand il y a beaucoup de transactions",
+    "raw": "the dashboard, studio and journal are too slow when there are many transactions",
     "context_links": [],
     "stages": {
       "authoring": {
@@ -223,7 +223,7 @@
     "priority": "Low",
     "project_id": "p-6804",
     "column": "sent-to-ai",
-    "raw": "filtre contrepartie dans le journal",
+    "raw": "counterparty filter in the journal",
     "context_links": [],
     "stages": {
       "authoring": {
@@ -361,7 +361,7 @@
     "priority": "High",
     "project_id": "p-7120",
     "column": "to-refine",
-    "raw": "après un timeout SSO la page de login boucle à l'infini",
+    "raw": "after an SSO timeout the login page loops indefinitely",
     "context_links": [],
     "stages": {
       "authoring": {

@@ -9,12 +9,12 @@ import { SidebarTrigger } from '@/components/ui/sidebar'
 type PageHeaderProps = {
   title: string
   icon: LucideIcon
-  // Page parente affichée en fil d'Ariane (« Projects › 6804-cashgpt »).
+  // Parent page shown in the breadcrumb (Projects › 6804-cashgpt).
   parent?: { label: string; to: string }
   actions?: ReactNode
 }
 
-// La barre est séparée du contenu pour rester immobile pendant le rebond du scroll.
+// Keep the header separate from the content so it stays still during scroll bounce.
 export function PageHeader({ title, icon: Icon, parent, actions }: PageHeaderProps) {
   const headerContainer = useContext(PageHeaderContext)
   const header = (

@@ -23,7 +23,7 @@ export function NewStoryDialog({ projects, epics, onCreate }: NewStoryDialogProp
   const [open, setOpen] = useState(false)
   const [type, setType] = useState<IssueType>('Story')
   const [selectedProjectId, setProjectId] = useState<string>()
-  // Les projets arrivent de l'API : le premier est choisi par défaut une fois chargé.
+  // Projects come from the API; select the first one by default once loaded.
   const projectId = selectedProjectId ?? projects[0]?.id ?? ''
   const [priority, setPriority] = useState<Priority>('Medium')
   const [parentKey, setParentKey] = useState(NO_PARENT)

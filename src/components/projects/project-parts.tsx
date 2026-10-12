@@ -3,9 +3,9 @@ import type { LucideIcon } from 'lucide-react'
 import { DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
 
-// Éléments communs de la page projet et de ses pop-ups.
+// Shared elements for the project page and its dialogs.
 
-// Pop-ups : en-tête fixe, corps qui défile.
+// Dialogs: fixed header and scrollable body.
 export const projectDialogClassName = 'flex max-h-[min(90vh,56rem)] flex-col gap-0 p-0'
 
 type ProjectDialogHeaderProps = {
@@ -65,7 +65,7 @@ type SectionHeaderProps = {
   children?: ReactNode
 }
 
-// En-tête d'une section de la page projet : titre discret, description, actions à droite.
+// Project section header: subtle title, description and actions on the right.
 export function SectionHeader({ title, count, actions, children }: SectionHeaderProps) {
   return (
     <div className="flex items-end justify-between gap-4">
@@ -81,7 +81,7 @@ export function SectionHeader({ title, count, actions, children }: SectionHeader
   )
 }
 
-// Rôles (« hats ») sous forme de petites pastilles.
+// Roles (hats) displayed as small badges.
 export function RoleBadges({ roles }: { roles: string[] }) {
   if (roles.length === 0) return <span className="text-xs text-muted-foreground">—</span>
   return (

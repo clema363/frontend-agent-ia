@@ -1,4 +1,4 @@
 import { createContext } from 'react'
 
-// La navigation est rendue dans le cadre fixe, hors de la zone de défilement.
+// Render navigation in the fixed frame, outside the scrollable area.
 export const PageHeaderContext = createContext<HTMLDivElement | null>(null)

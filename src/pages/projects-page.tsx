@@ -12,10 +12,10 @@ import { cn, progressOf } from '@/lib/utils'
 
 type ViewMode = 'list' | 'cards'
 
-// Le mode d'affichage choisi est gardé d'une visite à l'autre.
+// Preserve the selected view mode between visits.
 const VIEW_KEY = 'projects-view'
 
-// Colonnes partagées par l'en-tête et les lignes de la liste.
+// Columns shared by the list header and rows.
 const rowGrid = 'grid grid-cols-[minmax(0,1fr)_7rem_4rem_5.5rem] items-center gap-4 md:grid-cols-[minmax(0,1fr)_7rem_4rem_5.5rem_12rem]'
 
 export function ProjectsPage() {

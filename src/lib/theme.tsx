@@ -5,7 +5,7 @@ export type ThemeMode = 'light' | 'dark' | 'system'
 
 export type Theme = {
   mode: ThemeMode
-  // Fond de chaque colonne du Kanban. Colonne absente = gris neutre par défaut.
+  // Background for each Kanban column. Missing columns default to neutral gray.
   kanbanColumns: Partial<Record<KanbanColumnId, string>>
 }
 
@@ -14,7 +14,7 @@ export const kanbanPresets = ['#64748b', '#3b82f6', '#8b5cf6', '#ec4899', '#f973
 const storageKey = 'atlas-theme'
 const defaultTheme: Theme = { mode: 'system', kanbanColumns: {} }
 
-// Préférence propre à l'appareil : lue en local pour être appliquée avant le premier rendu.
+// Device-specific preference, read locally before the first render.
 function loadTheme(): Theme {
   try {
     return { ...defaultTheme, ...JSON.parse(localStorage.getItem(storageKey) ?? '{}') }
@@ -30,7 +30,7 @@ function applyTheme(theme: Theme) {
   root.classList.toggle('dark', theme.mode === 'dark' || (theme.mode === 'system' && darkQuery.matches))
 }
 
-// Teinte transparente : la même couleur reste lisible en mode clair comme en mode sombre.
+// Transparent tint: the same color stays readable in both light and dark modes.
 export function kanbanColumnStyle(color: string | undefined) {
   return color ? { backgroundColor: `color-mix(in oklch, ${color} 16%, transparent)` } : undefined
 }

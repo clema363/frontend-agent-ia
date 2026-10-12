@@ -3,7 +3,7 @@ export type DiffLine = {
   text: string
 }
 
-// Diff ligne à ligne (plus longue sous-séquence commune), suffisant pour des textes courts comme une user story.
+// Line-by-line diff (longest common subsequence), sufficient for short texts such as user stories.
 export function diffLines(before: string, after: string): DiffLine[] {
   const a = before.split('\n')
   const b = after.split('\n')

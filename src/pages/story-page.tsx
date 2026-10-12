@@ -29,7 +29,7 @@ export function StoryPage() {
     onApprove: (id) => mutations.decide.mutate({ id, decision: 'approve' }, feedback),
     onComment: (id, comment) => mutations.decide.mutate({ id, decision: 'refuse', comment }, feedback),
     onChat: (id, message) => mutations.sendMessage.mutate({ id, message }, feedback),
-    // Les modifications du document sont conservées dans le cache local.
+    // Keep document edits in the local cache.
     onEdit: (id, stageId, markdown) => queryClient.setQueryData<UserStory[]>(keys.stories, (list) =>
       list?.map((item) => {
         const stage = item.id === id ? item.stages[stageId] : undefined

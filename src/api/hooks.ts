@@ -21,7 +21,7 @@ export const keys = {
   gitlabProjects: ['gitlab-projects'],
 }
 
-// Mutation qui rafraîchit les requêtes concernées une fois terminée.
+// Mutation that refreshes the affected queries when it completes.
 function useInvalidatingMutation<TVariables, TData>(fn: (variables: TVariables) => Promise<TData>, ...invalidate: QueryKey[]) {
   const queryClient = useQueryClient()
   return useMutation({
@@ -39,13 +39,13 @@ export function useMe() {
   return useQuery({ queryKey: keys.me, queryFn: api.auth.me })
 }
 
-// Changer de rôle métier change aussi ce que l'on peut valider : tout est rechargé.
+// Changing the business role also changes approval permissions, so reload everything.
 export function useUpdateMe() {
   const queryClient = useQueryClient()
   return useMutation({ mutationFn: api.auth.updateMe, onSettled: () => queryClient.invalidateQueries() })
 }
 
-// Préférences d'affichage (vue du Kanban…) : enregistrées sans tout recharger, contrairement au changement de rôle.
+// Save display preferences (Kanban view, etc.) without reloading everything, unlike role changes.
 export function useSavePreferences() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -70,7 +70,7 @@ export function useStories() {
   return useQuery({
     queryKey: keys.stories,
     queryFn: api.us.list,
-    // Tant qu'un agent travaille, on interroge régulièrement pour voir apparaître son document.
+    // Poll while an agent is working to retrieve its document when it becomes available.
     refetchInterval: (query) => (query.state.data?.some(agentIsWorking) ? 2000 : false),
   })
 }

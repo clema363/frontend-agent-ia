@@ -17,8 +17,8 @@ import { Button } from '@/components/ui/button'
 import type { CodingAgentActivity, CodingAgentRun, CodingAgentStatus } from '@/lib/domain'
 import { cn, timeAgo } from '@/lib/utils'
 
-// Session de l'IA de développement, présentée comme chez Linear : l'agent est un coéquipier
-// avec un état, un fil d'étapes publiées au fur et à mesure et, au bout, une merge request.
+// Coding agent session, presented like Linear: the agent is a teammate
+// with a status, a stream of published activities and, eventually, a merge request.
 
 const statusStyles: Record<CodingAgentStatus, { label: string; icon: LucideIcon; className: string; live?: boolean }> = {
   queued: { label: 'Queued', icon: CircleDashed, className: 'text-muted-foreground' },
@@ -37,7 +37,7 @@ export function AgentAvatar({ className }: { className?: string }) {
   )
 }
 
-// Version courte pour les cartes et la liste : avatar de l'agent, point animé tant qu'il travaille, numéro de MR.
+// Compact card/list view: agent avatar, animated dot while working and MR number.
 export function CodingAgentChip({ run }: { run: CodingAgentRun }) {
   const style = statusStyles[run.status]
   return (

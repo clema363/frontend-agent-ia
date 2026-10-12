@@ -10,11 +10,11 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { cockpitPriorities, type FieldConfig, type JiraField, type JiraFieldGroup, type Project } from '@/lib/domain'
 
 export function ProjectJiraFields({ project }: { project: Project }) {
-  // La config renvoie aussi le catalogue des champs à afficher.
+  // The configuration also returns the field catalog for display.
   const { data: config } = useFieldConfig(project.id, true)
 
   if (!config) return <p className="text-sm text-muted-foreground">Loading…</p>
-  // key : le formulaire repart de la config enregistrée après chaque sauvegarde.
+  // key: reset the form to the saved configuration after each save.
   return <FieldsForm key={JSON.stringify(config)} project={project} groups={config.catalogue} config={config} />
 }
 
@@ -42,7 +42,7 @@ function FieldsForm({ project, groups, config }: FieldsFormProps) {
     setSelected((list) => (checked ? [...list, fieldId] : list.filter((id) => id !== fieldId)))
   }
 
-  // La grille est rendue en deux colonnes : Text puis Lists à gauche, People puis Other à droite.
+  // Render two columns: Text then Lists on the left, People then Other on the right.
   const columns = [
     groups.filter((group) => group.title === 'Text' || group.title === 'Lists'),
     groups.filter((group) => group.title === 'People' || group.title === 'Other'),
@@ -104,7 +104,7 @@ function FieldsForm({ project, groups, config }: FieldsFormProps) {
         </div>
       </section>
 
-      {/* Barre d'enregistrement collée en bas de la vue. */}
+      {/* Save bar pinned to the bottom of the view. */}
       <div className="sticky bottom-4 flex items-center justify-between gap-4 rounded-lg border bg-background/95 px-4 py-2.5 shadow-sm backdrop-blur">
         <p className="text-xs text-muted-foreground tabular-nums">
           {dirty ? 'Unsaved changes · ' : ''}

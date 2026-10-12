@@ -26,10 +26,10 @@ const tabs = [
 
 type TabId = (typeof tabs)[number]['id']
 
-// Colonne de lecture centrée, partagée par les onglets et leur contenu.
+// Centered reading column shared by tabs and their content.
 const column = 'mx-auto w-full max-w-4xl'
 
-// Page d'un projet : /projects/:projectId/:tab? — un onglet par sujet de configuration.
+// Project page: /projects/:projectId/:tab? with one tab per configuration topic.
 export function ProjectPage() {
   const { projectId = '', tab = 'overview' } = useParams()
   const { data: projects, isPending } = useProjects()
@@ -82,9 +82,9 @@ export function ProjectPage() {
         }
       />
 
-      {/* Onglets dans l'URL : chaque section a son adresse et le bouton Retour fonctionne. */}
+      {/* Tabs use the URL so each section has its own address and the Back button works. */}
       <nav aria-label="Project sections" className="-mx-6 -mt-6 mb-8 h-10 border-b px-6">
-        {/* Même colonne centrée que le contenu, pour que les onglets s'alignent dessus. */}
+        {/* Use the same centered column as the content to align the tabs. */}
         <div className={`${column} flex h-full items-stretch gap-1`}>
           {tabs.map((item) => (
             <NavLink
@@ -151,7 +151,7 @@ function ProjectOverview({ project, boardUrl }: { project: Project; boardUrl: st
           </div>
         </div>
 
-        {/* Propriétés du projet sur une ligne, comme l'en-tête d'un projet Linear. */}
+        {/* Project properties on one row, similar to a Linear project header. */}
         <dl className="flex flex-wrap gap-x-8 gap-y-3 text-sm">
           <Property label="Progress">
             <span className="flex items-center gap-2 tabular-nums">

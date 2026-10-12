@@ -1,5 +1,5 @@
-// Une fonction par route du backend FastAPI (docs/api-routes.html du backend, ou localhost:8000/docs).
-// Les corps sont écrits en camelCase : client.ts les convertit en snake_case.
+// One function per FastAPI backend route (backend docs/api-routes.html or localhost:8000/docs).
+// Request bodies use camelCase; client.ts converts them to snake_case.
 import type {
   AppUser,
   ConfluencePage,
@@ -54,7 +54,7 @@ export const api = {
     create: (body: NewStoryRequest) => request<UserStory>('POST', '/us', body),
     delete: (id: string, alsoInJira = false) => request<void>('DELETE', `/us/${id}${alsoInJira ? '?jira=true' : ''}`),
     submit: (id: string) => request<UserStory>('POST', `/us/${id}/submit`),
-    // Le refus exige un commentaire.
+    // Rejection requires a comment.
     decide: (id: string, body: { decision: 'approve' | 'refuse'; comment?: string }) =>
       request<UserStory>('POST', `/us/${id}/decide`, body),
     sendMessage: (id: string, message: string) => request<UserStory>('POST', `/us/${id}/messages`, { message }),
@@ -70,7 +70,7 @@ export const api = {
     patch: (id: string, sources: ProjectSources) => request<Project>('PATCH', `/projects/${id}`, sources),
     delete: (id: string) => request<void>('DELETE', `/projects/${id}`),
     members: (id: string) => request<ProjectMember[]>('GET', `/projects/${id}/members`),
-    // Le compte est créé si l'e-mail est inconnu.
+    // Create an account if the email address is unknown.
     inviteMember: (id: string, body: { email: string; roles: Role[] }) => request<ProjectMember>('POST', `/projects/${id}/members`, body),
     updateMember: (id: string, userId: string, roles: Role[]) =>
       request<ProjectMember>('PATCH', `/projects/${id}/members/${userId}`, { roles }),

@@ -14,7 +14,7 @@ const NO_USER = 'none'
 export function ProjectMembers({ project }: { project: Project }) {
   const { data: members = [] } = useMembers(project.id, true)
   const { data: me } = useMe()
-  // GET /users est réservé aux admins : sans lui, l'invitation se fait seulement par e-mail.
+  // GET /users is restricted to admins; without it, invitations use email only.
   const { data: appUsers = [] } = useUsers(Boolean(me?.isAdmin))
   const mutations = useMemberMutations(project.id)
 
@@ -94,7 +94,7 @@ function InviteForm({ users, memberIds, onInvite }: InviteFormProps) {
   function submit(event: FormEvent) {
     event.preventDefault()
     if (!canInvite) return
-    // Le backend crée le compte si l'e-mail est inconnu.
+    // The backend creates an account if the email address is unknown.
     const invitedEmail = email.trim() || users.find((user) => user.id === userId)?.email
     if (invitedEmail) onInvite({ email: invitedEmail, roles: selectedRoles })
     setUserId(NO_USER)
@@ -174,7 +174,7 @@ type RolePickerProps = {
   value: Role[]
   onToggle: (role: Role) => void
   label: string
-  // Un membre garde au moins un rôle ; seule l'invitation part d'une sélection vide.
+  // A member must keep at least one role; only invitations start with an empty selection.
   allowEmpty?: boolean
 }
 

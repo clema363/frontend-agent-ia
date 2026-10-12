@@ -39,7 +39,7 @@ function Section({ title, description, children }: { title: string; description:
   )
 }
 
-// Ligne de réglage : libellé à gauche, contrôle à droite.
+// Setting row: label on the left, control on the right.
 function Row({ label, description, children }: { label: string; description?: string; children: ReactNode }) {
   return (
     <div className="flex flex-col gap-3 p-4 not-last:border-b sm:flex-row sm:items-center sm:justify-between">
@@ -189,7 +189,7 @@ function ColorPicker({ label, presets, value, onChange }: ColorPickerProps) {
           {value === color && <Check className="size-3.5 text-white" aria-hidden="true" />}
         </button>
       ))}
-      {/* Pastille arc-en-ciel : ouvre le sélecteur natif pour une couleur libre. */}
+      {/* Rainbow swatch: open the native picker to choose any color. */}
       <label
         title="Custom color"
         className={cn(
@@ -211,7 +211,7 @@ function ColorPicker({ label, presets, value, onChange }: ColorPickerProps) {
 }
 
 function ModelSection() {
-  // GET /health renvoie aussi la configuration du LLM.
+  // GET /health also returns the LLM configuration.
   const { data: health, isPending, isError } = useHealth()
   const testAi = useTestAi()
 

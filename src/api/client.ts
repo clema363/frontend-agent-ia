@@ -1,5 +1,5 @@
-// Point d'entrée unique vers le backend FastAPI.
-// VITE_API_MOCK=false dans .env.local pour appeler le vrai serveur au lieu des fixtures JSON.
+// Single entry point to the FastAPI backend.
+// Set VITE_API_MOCK=false in .env.local to call the real server instead of JSON fixtures.
 const useMock = import.meta.env.VITE_API_MOCK !== 'false'
 const baseUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 
@@ -13,7 +13,7 @@ export class ApiError extends Error {
     this.status = status
   }
 
-  // FastAPI renvoie { "detail": ... } ; texte brut sinon.
+  // FastAPI returns { "detail": ... }; otherwise use plain text.
   get detail(): unknown {
     try {
       return toCamel(JSON.parse(this.message)?.detail)
@@ -23,9 +23,9 @@ export class ApiError extends Error {
   }
 }
 
-// Le backend parle snake_case, le front camelCase : la conversion des clés se fait ici et nulle part ailleurs.
-// Seules les clés en camelCase sont touchées : « Critical » ou « to-author » restent tels quels.
-// Sous ces clés, un objet a pour clés des données (ex. customfield_10001, « Critical ») : elles ne sont jamais converties.
+// The backend uses snake_case and the frontend camelCase; convert keys only here.
+// Only camelCase keys are changed; Critical and to-author stay as they are.
+// Objects under these keys use data as keys (e.g. customfield_10001, Critical); never convert them.
 const opaqueKeys = new Set(['fields', 'priorityMapping', 'priority_mapping', 'preferences'])
 
 const isRecord = (value: unknown) => value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -43,7 +43,7 @@ export const toSnake = (value: unknown) =>
 
 export const toCamel = (value: unknown) => convertKeys(value, (key) => key.replace(/_([a-z0-9])/g, (_, char: string) => char.toUpperCase()))
 
-// Jeton de l'app (JWT) : renvoyé par POST /auth/demo ou par le retour SSO (?token= dans l'URL).
+// App token (JWT): returned by POST /auth/demo or the SSO callback (?token= in the URL).
 const TOKEN_KEY = 'cockpit-token'
 
 export function setToken(token: string | null) {
@@ -59,7 +59,7 @@ if (tokenFromSso) {
   window.history.replaceState(null, '', url)
 }
 
-// Paramètres de requête en snake_case, valeurs vides ignorées.
+// Query parameters in snake_case; ignore empty values.
 export function query(params: Record<string, string | number | undefined>) {
   const search = new URLSearchParams()
   for (const [key, value] of Object.entries(params)) {
@@ -73,7 +73,7 @@ export async function request<T>(method: Method, path: string, body?: unknown): 
   const payload = body === undefined ? undefined : toSnake(body)
 
   if (useMock) {
-    // Import dynamique : les fixtures ne sont pas embarquées quand le mock est désactivé.
+    // Dynamic import: exclude fixtures from the bundle when mocking is disabled.
     const { handleMock } = await import('./mock-server')
     return toCamel(await handleMock(method, path, payload)) as T
   }

@@ -15,7 +15,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { Project, ProjectSources, SourceTool } from '@/lib/domain'
 
-// Sources lues par les agents : projet Jira, espace Confluence, dépôt GitLab.
+// Sources read by agents: Jira project, Confluence space and GitLab repository.
 export function SourcesSection({ project }: { project: Project }) {
   const { data: me } = useMe()
   const { data: jiraProjects = [] } = useJiraProjects(true)
@@ -60,7 +60,7 @@ type SourceRowProps = {
   noun: string
   attached?: string
   options: { value: string; label: string }[]
-  // null détache la source.
+  // null detaches the source.
   onAttach: (value: string | null, connectionId: string | null) => void
   signedInAs?: string
 }
@@ -70,7 +70,7 @@ const settingsUrl = { Jira: 'jiraUrl', Confluence: 'confluenceUrl', GitLab: 'git
 function SourceRow({ tool, noun, attached, options, onAttach, signedInAs }: SourceRowProps) {
   const [selected, setChoice] = useState<string>()
   const choice = selected ?? options[0]?.value ?? ''
-  // La source est lue avec la première connexion (PAT) de l'utilisateur pour cet outil.
+  // Read the source using the user's first connection (PAT) for this tool.
   const connection = useConnections(tool).data?.[0]
   const defaultUrl = useSettings().data?.[settingsUrl[tool]]
   const url = connection?.siteUrl ?? defaultUrl

@@ -10,16 +10,16 @@
       "story-points"
     ],
     "priority_mapping": {
-      "Critical": "Très Haute",
-      "High": "Haute",
-      "Medium": "Moyenne",
-      "Low": "Basse"
+      "Critical": "Very High",
+      "High": "High",
+      "Medium": "Medium",
+      "Low": "Low"
     },
     "jira_priorities": [
-      "Très Haute",
-      "Haute",
-      "Moyenne",
-      "Basse"
+      "Very High",
+      "High",
+      "Medium",
+      "Low"
     ],
     "catalogue": [
       {
@@ -99,7 +99,7 @@
           },
           {
             "id": "epic-link",
-            "label": "Lien d'épopée"
+            "label": "Epic Link"
           },
           {
             "id": "sprint",
@@ -134,7 +134,7 @@
           },
           {
             "id": "numeric-11",
-            "label": "Champ numerique 11"
+            "label": "Numeric field 11"
           },
           {
             "id": "due-date",
@@ -176,16 +176,16 @@
       "project"
     ],
     "priority_mapping": {
-      "Critical": "Très Haute",
-      "High": "Haute",
-      "Medium": "Moyenne",
-      "Low": "Basse"
+      "Critical": "Very High",
+      "High": "High",
+      "Medium": "Medium",
+      "Low": "Low"
     },
     "jira_priorities": [
-      "Très Haute",
-      "Haute",
-      "Moyenne",
-      "Basse"
+      "Very High",
+      "High",
+      "Medium",
+      "Low"
     ],
     "catalogue": [
       {
@@ -265,7 +265,7 @@
           },
           {
             "id": "epic-link",
-            "label": "Lien d'épopée"
+            "label": "Epic Link"
           },
           {
             "id": "sprint",
@@ -300,7 +300,7 @@
           },
           {
             "id": "numeric-11",
-            "label": "Champ numerique 11"
+            "label": "Numeric field 11"
           },
           {
             "id": "due-date",

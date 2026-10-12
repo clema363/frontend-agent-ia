@@ -6,7 +6,7 @@ type ProgressRingProps = {
   className?: string
 }
 
-// Petit cercle de progression (0 à 100), comme les projets de Linear.
+// Small progress circle (0 to 100), similar to Linear projects.
 export function ProgressRing({ value, size = 16, className }: ProgressRingProps) {
   const stroke = 2
   const radius = (size - stroke) / 2

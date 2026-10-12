@@ -59,7 +59,7 @@
     --card-foreground: oklch(0.145 0 0);
     --popover: oklch(1 0 0);
     --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.589 0.203 257.9); /* bleu Facebook #1877F2 */
+    --primary: oklch(0.589 0.203 257.9); /* Facebook blue #1877F2 */
     --primary-foreground: oklch(1 0 0);
     --secondary: oklch(0.97 0 0);
     --secondary-foreground: oklch(0.205 0 0);
@@ -130,7 +130,7 @@
   body {
     @apply bg-background text-foreground;
     }
-  /* Base à 15 px : toute l'interface (texte et espacements en rem) gagne en densité, à la manière de Linear. */
+  /* A 15 px base makes the interface denser (text and spacing in rem), similar to Linear. */
   html {
     @apply font-sans;
     font-size: 15px;

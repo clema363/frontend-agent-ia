@@ -1,7 +1,7 @@
-// Faux backend minimal : il répond aux routes du FastAPI avec les fixtures JSON (snake_case)
-// et garde les modifications en mémoire pour que l'écran réagisse. Aucune règle métier :
-// droits, doublons et validations restent le travail du vrai backend.
-// Un rechargement de la page remet les données à zéro.
+// Minimal mock backend: respond to FastAPI routes using JSON fixtures (snake_case)
+// and keep changes in memory so the UI responds. Business rules
+// such as permissions, duplicates and approvals belong to the real backend.
+// Reloading the page resets the data.
 import type { AppUser, Connection, ContextMap, FieldConfig, JournalEntry, Me, Project, ProjectMember, Settings, SourceTool, UserStory } from '@/lib/domain'
 import { nextColumn, stageForColumn } from '@/lib/story-workflow'
 import { ApiError, toCamel, toSnake, type Method } from './client'
@@ -27,7 +27,7 @@ import users from './fixtures/users.json'
 
 const LATENCY = 250
 
-// Copie de travail des fixtures, en camelCase pour les handlers.
+// Working copy of the fixtures, in camelCase for the handlers.
 const db = toCamel(structuredClone({ us, journal, projects, projectMembers, users, me, context, fieldConfig, settings, connections })) as {
   us: UserStory[]
   journal: JournalEntry[]
@@ -57,13 +57,13 @@ const members = (projectId: string) => (db.projectMembers[projectId] ??= [])
 const contextOf = (projectId: string) => (db.context[projectId] ??= structuredClone(db.context['p-6804']))
 const fieldConfigOf = (projectId: string) => (db.fieldConfig[projectId] ??= structuredClone(db.fieldConfig['p-6804']))
 
-// Trace d'une action de l'utilisateur connecté, pour le journal et les commentaires du panneau.
+// Record a signed-in user action for the journal and panel comments.
 function log(item: UserStory, action: string, detail?: string) {
   const stage = stageForColumn(item.column)
   db.journal.push({ id: newId('j'), usId: item.id, at: new Date().toISOString(), actor: db.me.name, actorType: 'user', action, stage: stage?.id, detail })
 }
 
-// Remplace l'agent : le document de l'étape courante apparaît tout de suite.
+// Stand in for the agent: generate the current stage document immediately.
 function fillCurrentStage(item: UserStory) {
   const stage = stageForColumn(item.column)
   if (!stage || item.stages[stage.id]) return
@@ -163,7 +163,7 @@ const routes: Record<string, Handler> = {
     db.projects.push(project)
     return project
   },
-  // null détache la source.
+  // null detaches the source.
   'PATCH /projects/{project_id}': ({ project_id }, changes: Record<string, unknown>) => {
     const project = find(db.projects, (item) => item.id === project_id)
     for (const [key, value] of Object.entries(changes)) Object.assign(project, { [key]: value ?? undefined })
@@ -214,7 +214,7 @@ const routes: Record<string, Handler> = {
   'PUT /settings': (_, changes) => Object.assign(db.settings, changes),
 }
 
-// Les routes statiques passent avant les routes paramétrées (/us/stats avant /us/{us_id}).
+// Static routes precede parameterized routes (/us/stats before /us/{us_id}).
 const compiled = Object.entries(routes)
   .map(([key, handler]) => {
     const [method, pattern] = key.split(' ')
@@ -234,7 +234,7 @@ export async function handleMock(method: Method, path: string, body?: unknown) {
     const match = route.method === method && pathname.match(route.regex)
     if (!match) continue
     const params = Object.fromEntries(route.names.map((name, index) => [name, decodeURIComponent(match[index + 1])]))
-    // Réponse renvoyée en snake_case, comme le vrai backend.
+    // Return responses in snake_case, like the real backend.
     return toSnake(structuredClone(route.handler(params, toCamel(body)) ?? null))
   }
   throw new ApiError(404, JSON.stringify({ detail: `Mock: no route for ${method} ${pathname}` }))

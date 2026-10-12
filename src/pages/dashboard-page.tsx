@@ -10,7 +10,7 @@ import { journalActionLabels, kanbanColumns, stages, type JournalEntry, type Pro
 import { canReview, stageForColumn, storyStatus } from '@/lib/story-workflow'
 import { cn, progressOf, timeAgo } from '@/lib/utils'
 
-// Lien vers la page complète du ticket.
+// Link to the full ticket page.
 const storyUrl = (story: UserStory) => `/kanban/${encodeURIComponent(story.id)}`
 
 export function DashboardPage() {
@@ -26,7 +26,7 @@ export function DashboardPage() {
     <>
       <PageHeader title="Dashboard" icon={LayoutDashboard} />
 
-      <div className="mx-auto w-full max-w-6xl space-y-6">
+      <div className="w-full space-y-5">
         <HealthWarning />
 
         <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border bg-border lg:grid-cols-4">
@@ -36,57 +36,56 @@ export function DashboardPage() {
           <Kpi icon={Send} label="Sent to AI" value={count('sent-to-ai')} hint="ready for development" to="/kanban" />
         </dl>
 
-        <div className="grid items-start gap-6 lg:grid-cols-3">
-          <div className="min-w-0 space-y-6 lg:col-span-2">
-            <section className="space-y-3">
-              <SectionHeader title="Waiting for you" count={toReview.length} actions={
-                <Link to="/kanban" className="flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground">
-                  All tickets
-                  <ArrowRight className="size-3.5" aria-hidden="true" />
-                </Link>
-              }>
-                Documents ready for your validation as <strong className="font-medium text-foreground">{role}</strong>.
-              </SectionHeader>
-              {toReview.length ? (
-                <ul className="divide-y rounded-lg border text-sm">
-                  {toReview.slice(0, 4).map((story) => (
-                    <ReviewRow key={story.id} story={story} project={projects.find((item) => item.id === story.projectId)} />
-                  ))}
-                </ul>
-              ) : (
-                <EmptyState icon={CircleCheck}>Nothing to validate. You're all caught up.</EmptyState>
-              )}
-            </section>
-
-            <section className="space-y-3">
-              <SectionHeader
-                title="Projects"
-                count={projects.length}
-                actions={
-                  <Link to="/projects" className="flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground">
-                    All projects
-                    <ArrowRight className="size-3.5" aria-hidden="true" />
-                  </Link>
-                }
-              />
+        <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+          <section className="min-w-0 space-y-3">
+            <SectionHeader title="Waiting for you" count={toReview.length} actions={
+              <Link to="/kanban" className="flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground">
+                All tickets
+                <ArrowRight className="size-3.5" aria-hidden="true" />
+              </Link>
+            }>
+              Documents ready for your validation as <strong className="font-medium text-foreground">{role}</strong>.
+            </SectionHeader>
+            {toReview.length ? (
               <ul className="divide-y rounded-lg border text-sm">
-                {projects.slice(0, 4).map((project) => (
-                  <ProjectRow key={project.id} project={project} stories={stories.filter((story) => story.projectId === project.id)} />
+                {toReview.slice(0, 6).map((story) => (
+                  <ReviewRow key={story.id} story={story} project={projects.find((item) => item.id === story.projectId)} />
                 ))}
               </ul>
-            </section>
-          </div>
-          <div className="min-w-0 space-y-6">
-            <Activity stories={stories} />
-            <Duplicates />
-          </div>
+            ) : (
+              <EmptyState icon={CircleCheck}>Nothing to validate. You're all caught up.</EmptyState>
+            )}
+          </section>
+
+          <Activity stories={stories} />
+
+          <section className="min-w-0 space-y-3">
+            <SectionHeader
+              title="Projects"
+              count={projects.length}
+              actions={
+                <Link to="/projects" className="flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground">
+                  All projects
+                  <ArrowRight className="size-3.5" aria-hidden="true" />
+                </Link>
+              }
+            >
+              Progress and distribution of stories across your projects.
+            </SectionHeader>
+            {projects.length ? <ul className="divide-y rounded-lg border text-sm">
+              {projects.slice(0, 4).map((project) => (
+                <ProjectRow key={project.id} project={project} stories={stories.filter((story) => story.projectId === project.id)} />
+              ))}
+            </ul> : <EmptyState icon={Inbox}>No projects yet.</EmptyState>}
+          </section>
+          <Duplicates />
         </div>
       </div>
     </>
   )
 }
 
-// Rien quand tout va bien : l'encart n'apparaît que si le serveur n'a pas de modèle configuré.
+// The notice appears only when the server has no model configured.
 function HealthWarning() {
   const { data: health } = useHealth()
   if (!health || health.llmConfigured) return null
@@ -112,7 +111,7 @@ type KpiProps = {
 
 function Kpi({ icon: Icon, label, value, hint, to, accent }: KpiProps) {
   return (
-    <Link to={to} className="group bg-background p-4 transition-colors hover:bg-muted/40">
+    <Link to={to} className="group bg-background px-4 py-3 transition-colors hover:bg-muted/40">
       <dt className="flex items-center gap-2 text-xs text-muted-foreground">
         <Icon className={cn('size-3.5', accent && value > 0 && 'text-primary')} aria-hidden="true" />
         {label}
@@ -147,7 +146,7 @@ function Activity({ stories }: { stories: UserStory[] }) {
   const entries = [...journal].sort((a, b) => b.at.localeCompare(a.at)).slice(0, 4)
 
   return (
-    <section className="space-y-3">
+    <section className="min-w-0 space-y-3">
       <SectionHeader
         title="Recent activity"
         actions={
@@ -158,7 +157,7 @@ function Activity({ stories }: { stories: UserStory[] }) {
         }
       />
       {entries.length ? (
-        <ol className="space-y-3 border-l pl-4 text-sm">
+        <ol className="space-y-2 border-l pl-4 text-sm">
           {entries.map((entry) => (
             <ActivityItem key={entry.id} entry={entry} story={stories.find((story) => story.id === entry.usId)} />
           ))}
@@ -204,7 +203,7 @@ function ProjectRow({ project, stories }: { project: Project; stories: UserStory
       <Link to={`/projects/${project.id}`} className="flex h-12 items-center gap-4 px-4 transition-colors hover:bg-muted/50">
         <ProgressRing value={progress} />
         <span className="min-w-0 flex-1 truncate font-medium">{project.name}</span>
-        {/* Répartition des US par colonne du Kanban, de la création à l'envoi à l'IA. */}
+        {/* Story distribution across Kanban columns, from creation to handoff to the coding agent. */}
         <span className="hidden h-1.5 w-40 overflow-hidden rounded-full bg-muted sm:flex" title="US per board column">
           {kanbanColumns.map((column) => {
             const count = stories.filter((story) => story.column === column.id).length
@@ -230,7 +229,7 @@ function Duplicates() {
   const { data: stats } = useStats()
 
   return (
-    <section className="space-y-3">
+    <section className="min-w-0 space-y-3">
       <SectionHeader title="Duplicate prevention">Needs checked against existing US and Jira tickets.</SectionHeader>
       <dl className="divide-y rounded-lg border text-sm">
         <StatRow icon={CopyCheck} label="Needs flagged as duplicates" value={stats?.flaggedNeeds} />
@@ -252,7 +251,7 @@ function StatRow({ icon: Icon, label, value }: { icon: LucideIcon; label: string
 
 function EmptyState({ icon: Icon, children }: { icon: LucideIcon; children: ReactNode }) {
   return (
-    <p className="flex items-center gap-2 rounded-lg border border-dashed px-4 py-8 text-sm text-muted-foreground">
+    <p className="flex items-center gap-2 rounded-lg border border-dashed px-4 py-5 text-sm text-muted-foreground">
       <Icon className="size-4" aria-hidden="true" />
       {children}
     </p>

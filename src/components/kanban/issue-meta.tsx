@@ -26,14 +26,14 @@ export function PriorityIcon({ priority, className }: { priority: Priority; clas
   return <Icon className={cn('size-3.5 shrink-0', color, className)} aria-label={`${priority} priority`} />
 }
 
-// Icône d'état d'une colonne, comme les statuts de Linear : un cercle qui se remplit d'étape en étape,
-// puis une coche quand la US est partie chez l'IA de développement.
+// Column status icon, similar to Linear statuses: a circle fills as the story progresses,
+// then becomes a check mark once the story is handed off to the coding agent.
 export function ColumnIcon({ column, className }: { column: KanbanColumnId; className?: string }) {
   const index = kanbanColumns.findIndex((item) => item.id === column)
   const { color, title } = kanbanColumns[index]
   const share = index / (kanbanColumns.length - 1)
   const last = index === kanbanColumns.length - 1
-  // Part remplie dessinée comme un arc épais : le cercle intérieur a un rayon de 2, sa circonférence vaut 4π.
+  // Draw the filled portion as a thick arc: the inner circle has radius 2 and circumference 4π.
   const circumference = 4 * Math.PI
 
   return (

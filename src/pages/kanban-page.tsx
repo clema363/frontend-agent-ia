@@ -29,7 +29,7 @@ const typeOptions = [
 ]
 
 export function KanbanPage() {
-  // Les filtres du Kanban restent dans l'URL et sont conservés au retour d'un ticket.
+  // Kanban filters stay in the URL and are preserved when returning from a ticket.
   const [searchParams, setSearchParams] = useSearchParams()
   const { theme } = useTheme()
   const projectId = searchParams.get('project') ?? ALL_PROJECTS
@@ -60,7 +60,7 @@ export function KanbanPage() {
   function openStory(id: string) {
     navigate(`/kanban/${encodeURIComponent(id)}`, { state: { returnTo } })
   }
-  // Rôle métier de l'utilisateur connecté (PATCH /auth/me) : il détermine qui peut valider chaque étape.
+  // The signed-in user's business role (PATCH /auth/me) determines who can approve each stage.
   const { data: me } = useMe()
   const updateMe = useUpdateMe()
   const savePreferences = useSavePreferences()
@@ -85,7 +85,7 @@ export function KanbanPage() {
   const onError = (cause: Error) => setError(cause instanceof ApiError ? describe(cause) : cause.message)
   const onSuccess = () => setError(undefined)
 
-  // Le titre, l'epic parente et les liens ne font pas partie de POST /us : les liens sont ajoutés au besoin.
+  // The title, parent epic and links are not part of POST /us; links are appended to the requirement.
   function createStory(input: NewStoryInput, force = false) {
     const body: NewStoryRequest = {
       need: [input.raw, ...input.contextLinks].join('\n'),
@@ -100,7 +100,7 @@ export function KanbanPage() {
         openStory(story.id)
       },
       onError: (cause) => {
-        // 409 : le besoin ressemble à une US existante, on demande confirmation avant de forcer.
+        // 409: the requirement resembles an existing story; ask for confirmation before forcing creation.
         if (cause instanceof ApiError && cause.status === 409 && !force) {
           if (window.confirm(`${describe(cause)}\n\nCreate the US anyway?`)) createStory(input, true)
           return
@@ -110,14 +110,14 @@ export function KanbanPage() {
     })
   }
 
-  // Vue Tableau ou Liste : dans l'URL si elle y est, sinon la préférence enregistrée de l'utilisateur.
+  // Board or list view: use the URL value if present, otherwise the user's saved preference.
   const view: KanbanView = searchParams.get('view') === 'list' || (!searchParams.get('view') && me?.preferences?.kanbanView === 'list') ? 'list' : 'board'
   function setView(value: KanbanView) {
     updateParams({ view: value })
     savePreferences.mutate({ kanbanView: value })
   }
 
-  // Nombre de commentaires par US, lus dans le journal.
+  // Comment counts per story, read from the journal.
   const { data: journal = [] } = useJournal()
   const commentCount = (story: UserStory) =>
     journal.filter((entry) => entry.usId === story.id && entry.detail && (entry.action === 'refused' || entry.action === 'rejected')).length
@@ -128,7 +128,7 @@ export function KanbanPage() {
     onOpen: () => openStory(story.id),
   })
 
-  // Les anciens liens vers le panneau redirigent vers la page complète.
+  // Legacy panel links redirect to the full page.
   if (selectedStoryId) {
     return <Navigate to={`/kanban/${encodeURIComponent(selectedStoryId)}`} replace state={{ returnTo }} />
   }
@@ -304,7 +304,7 @@ function ColumnHeader({ column, count, className, showAgent }: { column: Column;
 
 type StoryItemProps = {
   story: UserStory
-  // Le document de l'étape en cours attend la validation du rôle choisi.
+  // The current stage document is awaiting approval from the selected role.
   mine: boolean
   comments: number
   onOpen: () => void
@@ -320,7 +320,7 @@ function StoryCard({ story, mine, comments, onOpen }: StoryItemProps) {
           <PriorityIcon priority={story.priority} className="ml-auto" />
         </div>
         <CardTitle className="line-clamp-2 leading-snug font-medium">
-          {/* Toute la carte est cliquable grâce au pseudo-élément étendu du bouton. */}
+          {/* The button's expanded pseudo-element makes the entire card clickable. */}
           <button
             type="button"
             onClick={onOpen}
@@ -356,7 +356,7 @@ function StoryRow({ story, mine, comments, onOpen, project }: StoryItemProps & {
   )
 }
 
-// Petits indicateurs d'une US : état de l'étape en cours, commentaires, qui doit valider, IA de développement.
+// Story indicators: current stage status, comments, approvers and coding agent.
 function StoryIndicators({ story, mine, comments }: Omit<StoryItemProps, 'onOpen'>) {
   const stage = stageForColumn(story.column)
   const status = storyStatus(story)

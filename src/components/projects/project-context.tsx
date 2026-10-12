@@ -49,7 +49,7 @@ type MapEditorProps = {
   map: ContextMap
 }
 
-// Le brouillon reste local jusqu'à la validation, qui l'envoie au serveur.
+// Keep the draft local until approval sends it to the server.
 function MapEditor({ projectId, map }: MapEditorProps) {
   const [draft, setDraft] = useState(map.content)
   const { init, validate } = useContextMutations(projectId)
@@ -57,7 +57,7 @@ function MapEditor({ projectId, map }: MapEditorProps) {
   const validated = map.validated && draft === map.content
 
   function regenerate() {
-    // L'agent Cartographer relit les sources attachées et régénère cette carte.
+    // The Cartographer agent reads the attached sources again and regenerates this map.
     init.mutate([map.kind])
   }
 
