@@ -1,0 +1,5 @@
+{
+  "jira_url": "https://jira.example.com",
+  "confluence_url": "https://confluence.example.com",
+  "gitlab_url": "https://gitlab.example.com"
+}

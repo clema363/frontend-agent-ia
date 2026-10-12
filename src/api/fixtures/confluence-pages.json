@@ -1,0 +1,22 @@
+[
+  {
+    "id": "4401",
+    "title": "Payment lifecycle",
+    "space_key": "CASH"
+  },
+  {
+    "id": "4402",
+    "title": "FX rates policy",
+    "space_key": "CASH"
+  },
+  {
+    "id": "4403",
+    "title": "Performance targets",
+    "space_key": "CASH"
+  },
+  {
+    "id": "5101",
+    "title": "Target architecture",
+    "space_key": "ARCHI"
+  }
+]

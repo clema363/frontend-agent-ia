@@ -1,0 +1,5 @@
+{
+  "status": "ok",
+  "llm_model": "glm-latest",
+  "llm_configured": true
+}

@@ -1,0 +1,37 @@
+[
+  {
+    "id": "p-6804",
+    "key": "TCAAS6804",
+    "name": "6804-cashgpt",
+    "jira_connection_id": "c-1",
+    "jira_project_key": "TCAAS6804",
+    "confluence_connection_id": "c-2",
+    "confluence_space_key": "CASH",
+    "gitlab_connection_id": "c-3",
+    "gitlab_project_path": "gf/it_ps/cashgpt/cashgpt/a100137_agent_jira",
+    "member_count": 3,
+    "my_roles": [
+      "PO",
+      "BA",
+      "Architect",
+      "DEV",
+      "QA"
+    ],
+    "user_stories": 5,
+    "completed": 1
+  },
+  {
+    "id": "p-7120",
+    "key": "TRP7120",
+    "name": "7120-treasury-portal",
+    "jira_connection_id": "c-1",
+    "jira_project_key": "TRP7120",
+    "member_count": 2,
+    "my_roles": [
+      "PO",
+      "DEV"
+    ],
+    "user_stories": 1,
+    "completed": 0
+  }
+]

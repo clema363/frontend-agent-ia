@@ -1,0 +1,51 @@
+{
+  "p-6804": [
+    {
+      "user_id": "u-admin",
+      "name": "Admin (demo)",
+      "email": "admin@local",
+      "roles": [
+        "PO",
+        "BA",
+        "Architect",
+        "DEV",
+        "QA"
+      ]
+    },
+    {
+      "user_id": "u-gate-ba",
+      "name": "BA validator",
+      "email": "gate-ba@local",
+      "roles": [
+        "BA"
+      ]
+    },
+    {
+      "user_id": "u-po",
+      "name": "PO (demo)",
+      "email": "po@local",
+      "roles": [
+        "PO"
+      ]
+    }
+  ],
+  "p-7120": [
+    {
+      "user_id": "u-admin",
+      "name": "Admin (demo)",
+      "email": "admin@local",
+      "roles": [
+        "PO",
+        "DEV"
+      ]
+    },
+    {
+      "user_id": "u-ba",
+      "name": "BA (demo)",
+      "email": "ba@local",
+      "roles": [
+        "BA"
+      ]
+    }
+  ]
+}

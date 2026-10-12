@@ -1,0 +1,22 @@
+[
+  {
+    "email": "admin@local",
+    "name": "Admin (demo)",
+    "role": "PO"
+  },
+  {
+    "email": "ba@local",
+    "name": "BA (demo)",
+    "role": "BA"
+  },
+  {
+    "email": "po@local",
+    "name": "PO (demo)",
+    "role": "PO"
+  },
+  {
+    "email": "gate-ba@local",
+    "name": "BA validator",
+    "role": "BA"
+  }
+]
