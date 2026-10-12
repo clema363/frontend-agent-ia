@@ -69,7 +69,7 @@ export function StoryPage() {
       ) : (
         <div className="mx-auto grid max-w-7xl items-start gap-10 py-4 lg:grid-cols-[minmax(0,1fr)_260px] lg:gap-16 lg:px-6 lg:py-10 xl:gap-24">
           <section className="min-w-0">
-            <StoryDetail key={`${story.id}-${story.column}`} story={story} role={role} {...actions} />
+            <StoryDetail key={`${story.id}-${story.column}`} story={story} role={role} approving={mutations.decide.isLoading} {...actions} />
           </section>
           <JiraProperties story={story} />
         </div>

@@ -7,9 +7,9 @@ import {
   MessageSquareText,
   Pencil,
   Send,
-  ThumbsUp,
 } from 'lucide-react'
 import { AgentAvatar, CodingAgentPanel } from '@/components/kanban/coding-agent'
+import { ApproveStoryDialog } from '@/components/kanban/approve-story-dialog'
 import { IssueTypeIcon, PriorityIcon } from '@/components/kanban/issue-meta'
 import { Markdown } from '@/components/markdown'
 import { UserAvatar } from '@/components/projects/project-parts'
@@ -38,9 +38,10 @@ export type StoryActions = {
 type StoryDetailProps = StoryActions & {
   story: UserStory
   role: Role
+  approving?: boolean
 }
 
-export function StoryDetail({ story, role, ...actions }: StoryDetailProps) {
+export function StoryDetail({ story, role, approving = false, ...actions }: StoryDetailProps) {
   const currentStage = stageForColumn(story.column)
   const jiraUrl = useSettings().data?.jiraUrl
   const sentToAi = story.column === 'sent-to-ai'
@@ -185,6 +186,10 @@ export function StoryDetail({ story, role, ...actions }: StoryDetailProps) {
       {output && (
         <footer className="space-y-3 border-t bg-background py-5">
           <ReviewBar
+            key={stageTab}
+            storyKey={story.key}
+            stageLabel={stage.label}
+            approving={approving}
             output={output}
             isCurrent={isCurrent}
             canValidate={canValidate}
@@ -256,6 +261,9 @@ function AgentWorking({ agent, isCurrent }: { agent: string; isCurrent: boolean 
 }
 
 type ReviewBarProps = {
+  storyKey: string
+  stageLabel: string
+  approving: boolean
   output: StageOutput
   isCurrent: boolean
   canValidate: boolean
@@ -266,7 +274,7 @@ type ReviewBarProps = {
   onEdit: () => void
 }
 
-function ReviewBar({ output, isCurrent, canValidate, approvers, isPlan, editing, onApprove, onEdit }: ReviewBarProps) {
+function ReviewBar({ storyKey, stageLabel, approving, output, isCurrent, canValidate, approvers, isPlan, editing, onApprove, onEdit }: ReviewBarProps) {
   const review = output.review
 
   if (!isCurrent) {
@@ -288,14 +296,11 @@ function ReviewBar({ output, isCurrent, canValidate, approvers, isPlan, editing,
           `Only ${approvers.join(' or ')} can validate this step.`
         )}
       </p>
-      <Button variant="outline" size="sm" onClick={onEdit} disabled={!canValidate || editing}>
+      <Button variant="outline" size="sm" onClick={onEdit} disabled={!canValidate || editing || approving}>
         <Pencil data-icon="inline-start" />
         Edit
       </Button>
-      <Button size="sm" onClick={onApprove} disabled={!canValidate || editing}>
-        {isPlan ? <Send data-icon="inline-start" /> : <ThumbsUp data-icon="inline-start" />}
-        {isPlan ? 'Approve & send to AI' : 'Approve'}
-      </Button>
+      <ApproveStoryDialog storyKey={storyKey} stageLabel={stageLabel} isPlan={isPlan} disabled={!canValidate || editing} pending={approving} onApprove={onApprove} />
     </div>
   )
 }
@@ -479,4 +484,3 @@ function StoryDiff({ before, after }: { before: string; after: string }) {
     </div>
   )
 }
-
