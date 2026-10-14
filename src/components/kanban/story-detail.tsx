@@ -1,12 +1,12 @@
 import { useRef, useState, type Ref } from 'react'
 import {
+  ArrowUp,
   Bot,
   CircleCheck,
   ExternalLink,
   Loader,
   MessageSquareText,
   Pencil,
-  Send,
 } from 'lucide-react'
 import { AgentAvatar, CodingAgentPanel } from '@/components/kanban/coding-agent'
 import { ApproveStoryDialog } from '@/components/kanban/approve-story-dialog'
@@ -184,7 +184,7 @@ export function StoryDetail({ story, role, approving = false, ...actions }: Stor
       </div>
 
       {output && (
-        <footer className="space-y-3 border-t bg-background py-5">
+        <footer className="border-t bg-background py-5">
           <ReviewBar
             key={stageTab}
             storyKey={story.key}
@@ -199,14 +199,19 @@ export function StoryDetail({ story, role, approving = false, ...actions }: Stor
             onApprove={() => actions.onApprove(story.id)}
             onEdit={startEditing}
           />
-          {isCurrent && (
-            <ChatInput
-              inputRef={chatInputRef}
-              agent={stage.agent}
-              onSend={(text) => actions.onChat(story.id, text)}
-            />
-          )}
         </footer>
+      )}
+
+      {output && isCurrent && (
+        // Pinned to the bottom of the page scroller, like a chat composer.
+        // -mb-10 cancels the layout's bottom padding so the bar sits flush.
+        <div className="sticky bottom-0 z-10 -mb-10 bg-linear-to-t from-background from-75% to-transparent pt-6 pb-6">
+          <ChatInput
+            inputRef={chatInputRef}
+            agent={stage.agent}
+            onSend={(text) => actions.onChat(story.id, text)}
+          />
+        </div>
       )}
     </div>
   )
@@ -434,7 +439,7 @@ function ChatInput({ inputRef, agent, onSend }: ChatInputProps) {
 
   return (
     <form
-      className="flex items-end gap-2"
+      className="flex items-end gap-2 rounded-3xl border bg-background p-2 pl-4 shadow-lg transition-colors focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50 dark:bg-input/30"
       onSubmit={(event) => {
         event.preventDefault()
         send()
@@ -445,17 +450,18 @@ function ChatInput({ inputRef, agent, onSend }: ChatInputProps) {
         value={text}
         onChange={(event) => setText(event.target.value)}
         onKeyDown={(event) => {
-          if (event.key === 'Enter' && !event.shiftKey) {
+          if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
             event.preventDefault()
             send()
           }
         }}
+        rows={1}
         placeholder={`Ask the ${agent} to change something…`}
-        className="max-h-40 min-h-10"
+        className="max-h-48 min-h-9 resize-none rounded-none border-0 bg-transparent px-0 py-2 shadow-none focus-visible:ring-0 dark:bg-transparent"
         aria-label={`Message to the ${agent}`}
       />
-      <Button type="submit" size="icon" disabled={!text.trim()} aria-label="Send message">
-        <Send />
+      <Button type="submit" size="icon" className="shrink-0 rounded-full" disabled={!text.trim()} aria-label="Send message">
+        <ArrowUp />
       </Button>
     </form>
   )

@@ -1,0 +1,9 @@
+{
+  "id": "u-admin",
+  "name": "Admin (demo)",
+  "email": "admin@local",
+  "is_admin": true,
+  "is_active": true,
+  "role": "PO",
+  "preferences": {}
+}

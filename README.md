@@ -2,6 +2,16 @@
 
 React + Vite + TypeScript starter with Tailwind CSS, shadcn/ui, Redux Toolkit and RTK Query and React Router.
 
+## Version Vue
+
+Une version autonome avec Vue 3, TanStack Vue Query, Pinia et shadcn-vue est disponible dans [`vue/`](vue/README.md), avec les mêmes pages, routes, styles et données de démonstration.
+
+```sh
+cd vue
+npm ci
+npm run dev
+```
+
 ## Getting started
 
 Requirements: Node.js 22.12+ (tested with 22.23.1) and npm.

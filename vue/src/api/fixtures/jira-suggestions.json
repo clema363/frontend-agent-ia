@@ -1,0 +1,30 @@
+{
+  "users": [
+    "Admin (demo)",
+    "BA (demo)",
+    "PO (demo)"
+  ],
+  "groups": [
+    "cash-team",
+    "treasury-devs"
+  ],
+  "versions": [
+    "2026.10",
+    "2026.11"
+  ],
+  "components": [
+    "Dashboard",
+    "Journal",
+    "Studio",
+    "Payments"
+  ],
+  "sprints": [
+    "Sprint 41",
+    "Sprint 42"
+  ],
+  "issues": [
+    "TCAAS6804-12",
+    "TCAAS6804-109",
+    "TCAAS6804-114"
+  ]
+}

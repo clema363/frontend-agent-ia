@@ -1,0 +1,337 @@
+{
+  "p-6804": {
+    "enabled_fields": [
+      "summary",
+      "acceptance-criteria",
+      "reporter",
+      "issue-type",
+      "project",
+      "priority",
+      "story-points"
+    ],
+    "priority_mapping": {
+      "Critical": "Very High",
+      "High": "High",
+      "Medium": "Medium",
+      "Low": "Low"
+    },
+    "jira_priorities": [
+      "Very High",
+      "High",
+      "Medium",
+      "Low"
+    ],
+    "catalogue": [
+      {
+        "title": "Text",
+        "fields": [
+          {
+            "id": "summary",
+            "label": "Summary",
+            "locked_hint": "Always sent: filled with the US title."
+          },
+          {
+            "id": "acceptance-criteria",
+            "label": "Acceptance criteria"
+          },
+          {
+            "id": "dod",
+            "label": "Definition of Done"
+          },
+          {
+            "id": "dor",
+            "label": "Definition of Ready"
+          },
+          {
+            "id": "impact",
+            "label": "Impact details"
+          },
+          {
+            "id": "risks",
+            "label": "Risks"
+          }
+        ]
+      },
+      {
+        "title": "People",
+        "fields": [
+          {
+            "id": "reporter",
+            "label": "Reporter",
+            "locked_hint": "Always sent: the user who sends the US to Jira."
+          },
+          {
+            "id": "assignee",
+            "label": "Assignee"
+          },
+          {
+            "id": "request-visibility",
+            "label": "Request visibility"
+          },
+          {
+            "id": "request-visibility-groups",
+            "label": "Request visibility groups"
+          }
+        ]
+      },
+      {
+        "title": "Lists",
+        "fields": [
+          {
+            "id": "affects-versions",
+            "label": "Affects versions"
+          },
+          {
+            "id": "components",
+            "label": "Components"
+          },
+          {
+            "id": "environments",
+            "label": "Environments"
+          },
+          {
+            "id": "group-entity",
+            "label": "Group entity"
+          },
+          {
+            "id": "labels",
+            "label": "Labels"
+          },
+          {
+            "id": "epic-link",
+            "label": "Epic Link"
+          },
+          {
+            "id": "sprint",
+            "label": "Sprint"
+          },
+          {
+            "id": "validated-ac",
+            "label": "Validated acceptance criteria"
+          },
+          {
+            "id": "validated-dod",
+            "label": "Validated DoD"
+          },
+          {
+            "id": "validated-dor",
+            "label": "Validated DoR"
+          }
+        ]
+      },
+      {
+        "title": "Other",
+        "fields": [
+          {
+            "id": "issue-type",
+            "label": "Issue type",
+            "locked_hint": "Always sent: chosen in the \"New US\" dialog."
+          },
+          {
+            "id": "project",
+            "label": "Project",
+            "locked_hint": "Always sent: the Jira project attached to this project."
+          },
+          {
+            "id": "numeric-11",
+            "label": "Numeric field 11"
+          },
+          {
+            "id": "due-date",
+            "label": "Due date"
+          },
+          {
+            "id": "priority",
+            "label": "Priority"
+          },
+          {
+            "id": "severity",
+            "label": "Severity"
+          },
+          {
+            "id": "story-points",
+            "label": "Story points"
+          },
+          {
+            "id": "target-end",
+            "label": "Target end"
+          },
+          {
+            "id": "target-start",
+            "label": "Target start"
+          },
+          {
+            "id": "team",
+            "label": "Team"
+          }
+        ]
+      }
+    ]
+  },
+  "p-7120": {
+    "enabled_fields": [
+      "summary",
+      "reporter",
+      "issue-type",
+      "project"
+    ],
+    "priority_mapping": {
+      "Critical": "Very High",
+      "High": "High",
+      "Medium": "Medium",
+      "Low": "Low"
+    },
+    "jira_priorities": [
+      "Very High",
+      "High",
+      "Medium",
+      "Low"
+    ],
+    "catalogue": [
+      {
+        "title": "Text",
+        "fields": [
+          {
+            "id": "summary",
+            "label": "Summary",
+            "locked_hint": "Always sent: filled with the US title."
+          },
+          {
+            "id": "acceptance-criteria",
+            "label": "Acceptance criteria"
+          },
+          {
+            "id": "dod",
+            "label": "Definition of Done"
+          },
+          {
+            "id": "dor",
+            "label": "Definition of Ready"
+          },
+          {
+            "id": "impact",
+            "label": "Impact details"
+          },
+          {
+            "id": "risks",
+            "label": "Risks"
+          }
+        ]
+      },
+      {
+        "title": "People",
+        "fields": [
+          {
+            "id": "reporter",
+            "label": "Reporter",
+            "locked_hint": "Always sent: the user who sends the US to Jira."
+          },
+          {
+            "id": "assignee",
+            "label": "Assignee"
+          },
+          {
+            "id": "request-visibility",
+            "label": "Request visibility"
+          },
+          {
+            "id": "request-visibility-groups",
+            "label": "Request visibility groups"
+          }
+        ]
+      },
+      {
+        "title": "Lists",
+        "fields": [
+          {
+            "id": "affects-versions",
+            "label": "Affects versions"
+          },
+          {
+            "id": "components",
+            "label": "Components"
+          },
+          {
+            "id": "environments",
+            "label": "Environments"
+          },
+          {
+            "id": "group-entity",
+            "label": "Group entity"
+          },
+          {
+            "id": "labels",
+            "label": "Labels"
+          },
+          {
+            "id": "epic-link",
+            "label": "Epic Link"
+          },
+          {
+            "id": "sprint",
+            "label": "Sprint"
+          },
+          {
+            "id": "validated-ac",
+            "label": "Validated acceptance criteria"
+          },
+          {
+            "id": "validated-dod",
+            "label": "Validated DoD"
+          },
+          {
+            "id": "validated-dor",
+            "label": "Validated DoR"
+          }
+        ]
+      },
+      {
+        "title": "Other",
+        "fields": [
+          {
+            "id": "issue-type",
+            "label": "Issue type",
+            "locked_hint": "Always sent: chosen in the \"New US\" dialog."
+          },
+          {
+            "id": "project",
+            "label": "Project",
+            "locked_hint": "Always sent: the Jira project attached to this project."
+          },
+          {
+            "id": "numeric-11",
+            "label": "Numeric field 11"
+          },
+          {
+            "id": "due-date",
+            "label": "Due date"
+          },
+          {
+            "id": "priority",
+            "label": "Priority"
+          },
+          {
+            "id": "severity",
+            "label": "Severity"
+          },
+          {
+            "id": "story-points",
+            "label": "Story points"
+          },
+          {
+            "id": "target-end",
+            "label": "Target end"
+          },
+          {
+            "id": "target-start",
+            "label": "Target start"
+          },
+          {
+            "id": "team",
+            "label": "Team"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none" role="img" aria-labelledby="atlas-title atlas-desc">
+  <title id="atlas-title">Atlas</title>
+  <desc id="atlas-desc">Un A géométrique sur fond bleu nuit, traversé par une liaison turquoise entre deux nœuds pour évoquer un agent IA qui coordonne les tâches.</desc>
+  <defs>
+    <linearGradient id="atlas-background" x1="64" y1="32" x2="448" y2="480" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#192D4B"/>
+      <stop offset="1" stop-color="#0B1426"/>
+    </linearGradient>
+    <linearGradient id="atlas-link" x1="181" y1="294" x2="331" y2="294" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#5DE4CF"/>
+      <stop offset="1" stop-color="#69BFFF"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#atlas-background)"/>
+  <path d="M139 367L238 151C245 135 267 135 274 151L373 367" stroke="#F3F7FC" stroke-width="38" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M181 294H331" stroke="url(#atlas-link)" stroke-width="28" stroke-linecap="round"/>
+  <circle cx="181" cy="294" r="24" fill="#5DE4CF"/>
+  <circle cx="331" cy="294" r="24" fill="#69BFFF"/>
+  <circle cx="181" cy="294" r="7" fill="#14243D"/>
+  <circle cx="331" cy="294" r="7" fill="#14243D"/>
+</svg>

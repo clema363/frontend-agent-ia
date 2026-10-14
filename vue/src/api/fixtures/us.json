@@ -1,0 +1,404 @@
+[
+  {
+    "id": "us-118",
+    "key": "US-118",
+    "type": "Story",
+    "title": "Notify treasurers when a payment is rejected",
+    "priority": "High",
+    "project_id": "p-6804",
+    "column": "to-author",
+    "raw": "when the bank rejects a payment the treasurer must be notified quickly, before the cut-off, otherwise we miss the value date",
+    "context_links": [
+      "https://confluence.example.com/display/CASH/Payment+lifecycle"
+    ],
+    "stages": {
+      "authoring": {
+        "markdown": "## Notify treasurers when a payment is rejected\n\nAs a **treasurer**, I want to be notified when a payment is rejected by the bank so that I can fix it before the cut-off time.\n\n### Open questions\n- Which channel: e-mail, in-app notification or both?\n- Should the notification include the bank rejection reason?",
+        "sources": [
+          {
+            "tool": "Jira",
+            "label": "Epic TCAAS6804-12 · Payments"
+          },
+          {
+            "tool": "Confluence",
+            "label": "Payment lifecycle"
+          }
+        ],
+        "chat": []
+      }
+    }
+  },
+  {
+    "id": "us-116",
+    "key": "US-116",
+    "type": "Story",
+    "title": "Export the journal to Excel",
+    "priority": "Medium",
+    "project_id": "p-6804",
+    "column": "to-refine",
+    "raw": "export the journal to Excel for accounting, with the filters",
+    "context_links": [],
+    "stages": {
+      "authoring": {
+        "markdown": "## Export the journal to Excel\n\nAs a **cash manager**, I want to export the journal to Excel so that I can share it with the accounting team.\n\n### Notes from the PO\n- The accounting team works with Excel only.\n- The export should follow the filters of the screen.",
+        "sources": [
+          {
+            "tool": "Jira",
+            "label": "TCAAS6804-116"
+          }
+        ],
+        "review": {
+          "decision": "approved",
+          "by": "PO"
+        },
+        "chat": []
+      },
+      "refinement": {
+        "markdown": "## Export the journal to Excel\n\nAs a **cash manager**, I want to export the journal to Excel so that I can share it with the accounting team.\n\n### Acceptance criteria\n- **Given** filters are applied to the journal, **when** I click *Export*, **then** the file only contains the filtered lines.\n- **Given** the export is ready, **when** I open it, **then** it contains the date, account, amount, currency and label columns.\n- **Given** more than 50 000 lines match, **when** I click *Export*, **then** a warning asks me to narrow the filters.\n\n### Business rules\n- Amounts keep their original currency, no conversion.\n- Dates use the user's locale format.\n- The file name is `journal_<entity>_<date>.xlsx`.",
+        "sources": [
+          {
+            "tool": "Jira",
+            "label": "TCAAS6804-116"
+          },
+          {
+            "tool": "Confluence",
+            "label": "Journal · Business rules"
+          }
+        ],
+        "chat": [
+          {
+            "id": "m1",
+            "author": "user",
+            "role": "BA",
+            "text": "Can you add the 50 000 lines limit we discussed?"
+          },
+          {
+            "id": "m2",
+            "author": "agent",
+            "text": "Done: I added an acceptance criterion with a warning above 50 000 lines."
+          }
+        ]
+      }
+    }
+  },
+  {
+    "id": "us-114",
+    "key": "US-114",
+    "type": "Epic",
+    "title": "Multi-currency balance on the dashboard",
+    "priority": "High",
+    "project_id": "p-6804",
+    "column": "to-specify",
+    "raw": "show balances in multiple currencies on the dashboard + total in EUR",
+    "context_links": [
+      "https://confluence.example.com/display/CASH/FX+rates+policy"
+    ],
+    "stages": {
+      "authoring": {
+        "markdown": "## Multi-currency balance on the dashboard\n\nAs a **cash manager**, I want to see each account balance in its own currency and a total in EUR so that I can follow my global position.",
+        "sources": [
+          {
+            "tool": "Jira",
+            "label": "TCAAS6804-114"
+          }
+        ],
+        "review": {
+          "decision": "approved",
+          "by": "PO"
+        },
+        "chat": []
+      },
+      "refinement": {
+        "markdown": "## Multi-currency balance on the dashboard\n\nAs a **cash manager**, I want to see each account balance in its own currency and a total in EUR so that I can follow my global position.\n\n### Acceptance criteria\n- **Given** accounts in several currencies, **when** I open the dashboard, **then** each balance is shown in its own currency.\n- **Given** the daily ECB rates are available, **when** the total is computed, **then** it is converted to EUR.\n- **Given** the total is displayed, **then** the rate date is shown next to it.\n\n### Business rules\n- Rates come from the ECB and are refreshed once a day.\n- If no rate exists for the day, the last known rate is used and flagged.",
+        "sources": [
+          {
+            "tool": "Confluence",
+            "label": "FX rates policy"
+          }
+        ],
+        "review": {
+          "decision": "approved",
+          "by": "BA"
+        },
+        "chat": []
+      },
+      "specification": {
+        "markdown": "## Spec analysis\n\n### What fits\n- The account model already stores its currency (`src/models/account.ts`), no migration needed.\n- The dashboard already groups balances by account.\n\n### Points of attention\n- There is no FX rate provider in the code. A daily scheduled job is needed in `src/jobs/`.\n- The *FX rates policy* page on Confluence requires the rate date to be stored with each conversion.\n\n### Blockers\n- Amounts are stored as floats in `src/models/transaction.ts`. Conversions will introduce rounding errors: amounts should move to decimals first.\n\n### Suggested libraries\n- `decimal.js` for amounts\n- `date-fns` for rate dates",
+        "sources": [
+          {
+            "tool": "GitLab",
+            "label": "src/models/account.ts"
+          },
+          {
+            "tool": "GitLab",
+            "label": "src/models/transaction.ts"
+          },
+          {
+            "tool": "Confluence",
+            "label": "FX rates policy"
+          }
+        ],
+        "chat": []
+      }
+    }
+  },
+  {
+    "id": "us-112",
+    "key": "US-112",
+    "type": "Story",
+    "title": "Optimize dashboard, studio and journal performance at scale",
+    "priority": "Medium",
+    "project_id": "p-6804",
+    "column": "review-for-dev",
+    "raw": "the dashboard, studio and journal are too slow when there are many transactions",
+    "context_links": [],
+    "stages": {
+      "authoring": {
+        "markdown": "## Dashboard, studio and journal performance\n\nAs a **cash manager**, I want the dashboard, studio and journal to load quickly with a large number of transactions.",
+        "sources": [
+          {
+            "tool": "Jira",
+            "label": "TCAAS6804-112"
+          }
+        ],
+        "review": {
+          "decision": "approved",
+          "by": "PO"
+        },
+        "chat": []
+      },
+      "refinement": {
+        "markdown": "## Dashboard, studio and journal performance\n\nAs a **cash manager**, I want the dashboard, studio and journal to load in under 2 seconds with 100 000 transactions so that I can work without waiting.\n\n### Acceptance criteria\n- **Given** 100 000 transactions, **when** I open the dashboard, **then** it loads in under 2 seconds.\n- **Given** the journal, **when** I scroll, **then** lines are loaded 100 at a time from the server.\n- **Given** a studio chart, **when** it is displayed, **then** its data is aggregated on the server.\n\n### Business rules\n- Filters and sorting are applied on the server.",
+        "sources": [
+          {
+            "tool": "Confluence",
+            "label": "Performance targets"
+          }
+        ],
+        "review": {
+          "decision": "approved",
+          "by": "PO"
+        },
+        "chat": []
+      },
+      "specification": {
+        "markdown": "## Spec analysis\n\n### What fits\n- The journal API already supports `page` and `size` parameters (`src/api/journal.ts`).\n\n### Points of attention\n- Studio charts aggregate data in the browser (`src/studio/charts.tsx`). This must move to the server to meet the 2 second target.\n\n### Suggested libraries\n- `@tanstack/react-virtual` for long lists",
+        "sources": [
+          {
+            "tool": "GitLab",
+            "label": "src/api/journal.ts"
+          },
+          {
+            "tool": "GitLab",
+            "label": "src/studio/charts.tsx"
+          }
+        ],
+        "review": {
+          "decision": "approved",
+          "by": "Architect"
+        },
+        "chat": []
+      },
+      "plan": {
+        "markdown": "## Implementation plan\n\nPaginate the journal on the server, move studio aggregations to the API and virtualize long lists.\n\n1. **Use server-side pagination in the journal page**\n   `src/pages/journal.tsx`, `src/api/journal.ts`\n2. **Add an aggregation endpoint for studio charts**\n   `src/api/studio.ts`\n3. **Call the new endpoint from the studio charts**\n   `src/studio/charts.tsx`\n4. **Virtualize the dashboard transaction list**\n   `src/dashboard/transactions.tsx`\n5. **Add a load test with 100 000 transactions**\n   `tests/perf/dashboard.test.ts`",
+        "sources": [
+          {
+            "tool": "GitLab",
+            "label": "main · 4f2c1a9"
+          },
+          {
+            "tool": "Confluence",
+            "label": "Performance targets"
+          }
+        ],
+        "chat": []
+      }
+    }
+  },
+  {
+    "id": "us-109",
+    "key": "US-109",
+    "type": "Task",
+    "title": "Filter the journal by counterparty",
+    "priority": "Low",
+    "project_id": "p-6804",
+    "column": "sent-to-ai",
+    "raw": "counterparty filter in the journal",
+    "context_links": [],
+    "stages": {
+      "authoring": {
+        "markdown": "## Filter the journal by counterparty\n\nAs an **accountant**, I want to filter the journal by counterparty.",
+        "sources": [
+          {
+            "tool": "Jira",
+            "label": "TCAAS6804-109"
+          }
+        ],
+        "review": {
+          "decision": "approved",
+          "by": "PO"
+        },
+        "chat": []
+      },
+      "refinement": {
+        "markdown": "## Filter the journal by counterparty\n\nAs an **accountant**, I want to filter the journal by one or several counterparties so that I can reconcile a supplier account.\n\n### Acceptance criteria\n- **Given** the journal, **when** I select several counterparties, **then** only their lines are shown.\n- **Given** a filter is applied, **when** I share the URL, **then** the filter is kept.",
+        "sources": [
+          {
+            "tool": "Jira",
+            "label": "TCAAS6804-109"
+          }
+        ],
+        "review": {
+          "decision": "approved",
+          "by": "BA"
+        },
+        "chat": []
+      },
+      "specification": {
+        "markdown": "## Spec analysis\n\n### What fits\n- Counterparty is indexed (`db/migrations/0042_counterparty_index.sql`): filtering can be done in the existing journal query.",
+        "sources": [
+          {
+            "tool": "GitLab",
+            "label": "db/migrations/0042_counterparty_index.sql"
+          }
+        ],
+        "review": {
+          "decision": "approved",
+          "by": "DEV"
+        },
+        "chat": []
+      },
+      "plan": {
+        "markdown": "## Implementation plan\n\n1. **Accept a counterparties parameter in the journal API**\n   `src/api/journal.ts`\n2. **Add the multi-select filter synced with the URL**\n   `src/pages/journal.tsx`",
+        "sources": [
+          {
+            "tool": "GitLab",
+            "label": "main · 4f2c1a9"
+          }
+        ],
+        "review": {
+          "decision": "approved",
+          "by": "DEV"
+        },
+        "chat": []
+      }
+    },
+    "coding_agent": {
+      "agent": "Claude Code",
+      "status": "pr-opened",
+      "started_at": "2026-10-09T08:31:00Z",
+      "branch": "feat/TCAAS6804-109-counterparty-filter",
+      "pull_request": {
+        "number": 42,
+        "url": "https://gitlab.example.com/gf/it_ps/cashgpt/cashgpt/a100137_agent_jira/-/merge_requests/42",
+        "additions": 118,
+        "deletions": 21,
+        "ci": "passed"
+      },
+      "activities": [
+        {
+          "id": "a-1",
+          "at": "2026-10-09T08:31:00Z",
+          "kind": "thought",
+          "text": "Reading the implementation plan and the journal API."
+        },
+        {
+          "id": "a-2",
+          "at": "2026-10-09T08:32:00Z",
+          "kind": "action",
+          "text": "Read",
+          "file": "src/api/journal.ts"
+        },
+        {
+          "id": "a-3",
+          "at": "2026-10-09T08:34:00Z",
+          "kind": "action",
+          "text": "Added the counterparties parameter",
+          "file": "src/api/journal.ts"
+        },
+        {
+          "id": "a-4",
+          "at": "2026-10-09T08:37:00Z",
+          "kind": "question",
+          "text": "Should an empty counterparty list mean \"all counterparties\" or \"none\"?"
+        },
+        {
+          "id": "a-5",
+          "at": "2026-10-09T08:52:00Z",
+          "kind": "thought",
+          "text": "DEV answered \"all counterparties\". Building the multi-select filter."
+        },
+        {
+          "id": "a-6",
+          "at": "2026-10-09T08:55:00Z",
+          "kind": "action",
+          "text": "Added the multi-select filter synced with the URL",
+          "file": "src/pages/journal.tsx"
+        },
+        {
+          "id": "a-7",
+          "at": "2026-10-09T08:58:00Z",
+          "kind": "action",
+          "text": "Ran the tests: 48 passed"
+        },
+        {
+          "id": "a-8",
+          "at": "2026-10-09T09:01:00Z",
+          "kind": "response",
+          "text": "Merge request !42 is ready: the journal can be filtered by one or several counterparties and the filter is kept in the URL."
+        }
+      ],
+      "input_tokens": 64210,
+      "output_tokens": 9870,
+      "duration_ms": 1812000
+    }
+  },
+  {
+    "id": "us-121",
+    "key": "US-121",
+    "type": "Bug",
+    "title": "Login page loops after SSO timeout",
+    "priority": "High",
+    "project_id": "p-7120",
+    "column": "to-refine",
+    "raw": "after an SSO timeout the login page loops indefinitely",
+    "context_links": [],
+    "stages": {
+      "authoring": {
+        "markdown": "## Login page loops after SSO timeout\n\nAs a **user**, I want to be sent back to the SSO page when my session expires so that I can sign in again.\n\n### Steps to reproduce\n1. Sign in with SSO.\n2. Wait for the session to expire.\n3. Reload the page: the login page reloads forever.",
+        "sources": [
+          {
+            "tool": "Jira",
+            "label": "TRP7120-121"
+          }
+        ],
+        "review": {
+          "decision": "approved",
+          "by": "PO"
+        },
+        "chat": []
+      },
+      "refinement": {
+        "markdown": "## Login page loops after SSO timeout\n\n### Acceptance criteria\n- **Given** an expired session, **when** I reload any page, **then** I am redirected once to the SSO page.\n- **Given** I sign in again, **then** I land on the page I was on.",
+        "sources": [
+          {
+            "tool": "Confluence",
+            "label": "SSO integration"
+          }
+        ],
+        "review": {
+          "decision": "rejected",
+          "by": "BA"
+        },
+        "chat": [
+          {
+            "id": "m3",
+            "author": "user",
+            "role": "BA",
+            "text": "Please add the case where the SSO provider is down."
+          }
+        ]
+      }
+    }
+  }
+]

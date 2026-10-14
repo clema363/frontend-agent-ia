@@ -1,0 +1,86 @@
+{
+  "p-6804": [
+    {
+      "kind": "overview",
+      "label": "Overview",
+      "content": "## Project purpose\nThe project builds a SaaS \"Jira cockpit\" that orchestrates AI agents to draft, refine and audit Jira user stories, turning raw needs (text, PDF and image attachments) into dev-ready backlog items. It targets product owners, business analysts and delivery teams who lose time and quality in manual backlog refinement and story writing.\n\n## Functional scope\n- AI agent pipeline — Dev Ready agent producing implementation plans, chained with a Dev Readiness judge\n- Raw needs ingestion — capture of user needs, including PDF/image attachments\n- Story authoring and refinement — \"to author\" and \"to refine\" cards, PO/BA versioning, diff views\n- Dashboard and analytics — KPIs with period selection, AI telemetry (tokens, latency)\n- Users, roles and access control — multi-account login, app-admin vs project-member gating",
+      "validated": true,
+      "validator_roles": [
+        "PO",
+        "BA"
+      ]
+    },
+    {
+      "kind": "confluence",
+      "label": "Confluence",
+      "content": "## Confluence space CASH\n- *Payment lifecycle*: statuses of a payment from creation to bank settlement.\n- *FX rates policy*: daily ECB rates, rate date stored with each conversion.\n- *Performance targets*: dashboard under 2 seconds with 100 000 transactions.",
+      "validated": false,
+      "validator_roles": [
+        "PO",
+        "BA"
+      ]
+    },
+    {
+      "kind": "codebase",
+      "label": "Codebase",
+      "content": "## Stack\n- Front: React, Vite, TypeScript, Tailwind CSS, shadcn/ui\n- Back: Python, FastAPI, PostgreSQL\n\n## Main modules\n- `src/agents/` — one module per agent (authoring, refinement, spec, review)\n- `src/api/` — REST endpoints used by the front\n- `src/integrations/` — Jira, Confluence and GitLab clients\n\n## Conventions\n- Every agent output is a Markdown document stored with its sources.",
+      "validated": true,
+      "validator_roles": [
+        "Architect",
+        "DEV"
+      ]
+    },
+    {
+      "kind": "jira",
+      "label": "Jira",
+      "content": "## Jira project TCAAS6804\n- Issue types: Story, Epic, Bug, Task, Spike\n- Workflow: To do → In progress → Review → Done\n- Stories are linked to an epic through \"Epic Link\".\n\n## Writing conventions\n- Titles start with a verb.\n- Acceptance criteria use Given / When / Then.",
+      "validated": false,
+      "validator_roles": [
+        "PO",
+        "BA"
+      ]
+    }
+  ],
+  "p-7120": [
+    {
+      "kind": "overview",
+      "label": "Overview",
+      "content": "## Project purpose\nThe project builds a SaaS \"Jira cockpit\" that orchestrates AI agents to draft, refine and audit Jira user stories, turning raw needs (text, PDF and image attachments) into dev-ready backlog items. It targets product owners, business analysts and delivery teams who lose time and quality in manual backlog refinement and story writing.\n\n## Functional scope\n- AI agent pipeline — Dev Ready agent producing implementation plans, chained with a Dev Readiness judge\n- Raw needs ingestion — capture of user needs, including PDF/image attachments\n- Story authoring and refinement — \"to author\" and \"to refine\" cards, PO/BA versioning, diff views\n- Dashboard and analytics — KPIs with period selection, AI telemetry (tokens, latency)\n- Users, roles and access control — multi-account login, app-admin vs project-member gating",
+      "validated": false,
+      "validator_roles": [
+        "PO",
+        "BA"
+      ]
+    },
+    {
+      "kind": "confluence",
+      "label": "Confluence",
+      "content": "## Confluence space CASH\n- *Payment lifecycle*: statuses of a payment from creation to bank settlement.\n- *FX rates policy*: daily ECB rates, rate date stored with each conversion.\n- *Performance targets*: dashboard under 2 seconds with 100 000 transactions.",
+      "validated": false,
+      "validator_roles": [
+        "PO",
+        "BA"
+      ]
+    },
+    {
+      "kind": "codebase",
+      "label": "Codebase",
+      "content": "## Stack\n- Front: React, Vite, TypeScript, Tailwind CSS, shadcn/ui\n- Back: Python, FastAPI, PostgreSQL\n\n## Main modules\n- `src/agents/` — one module per agent (authoring, refinement, spec, review)\n- `src/api/` — REST endpoints used by the front\n- `src/integrations/` — Jira, Confluence and GitLab clients\n\n## Conventions\n- Every agent output is a Markdown document stored with its sources.",
+      "validated": false,
+      "validator_roles": [
+        "Architect",
+        "DEV"
+      ]
+    },
+    {
+      "kind": "jira",
+      "label": "Jira",
+      "content": "## Jira project TRP7120\n- Issue types: Story, Epic, Bug, Task, Spike\n- Workflow: To do → In progress → Review → Done\n- Stories are linked to an epic through \"Epic Link\".\n\n## Writing conventions\n- Titles start with a verb.\n- Acceptance criteria use Given / When / Then.",
+      "validated": false,
+      "validator_roles": [
+        "PO",
+        "BA"
+      ]
+    }
+  ]
+}

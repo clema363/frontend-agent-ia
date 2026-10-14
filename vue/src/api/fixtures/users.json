@@ -1,0 +1,30 @@
+[
+  {
+    "id": "u-admin",
+    "name": "Admin (demo)",
+    "email": "admin@local",
+    "is_admin": true,
+    "is_active": true
+  },
+  {
+    "id": "u-ba",
+    "name": "BA (demo)",
+    "email": "ba@local",
+    "is_admin": false,
+    "is_active": true
+  },
+  {
+    "id": "u-po",
+    "name": "PO (demo)",
+    "email": "po@local",
+    "is_admin": false,
+    "is_active": true
+  },
+  {
+    "id": "u-gate-ba",
+    "name": "BA validator",
+    "email": "gate-ba@local",
+    "is_admin": false,
+    "is_active": true
+  }
+]

@@ -1,0 +1,20 @@
+[
+  {
+    "id": "c-1",
+    "tool": "Jira",
+    "site_url": "https://jira.example.com",
+    "display_name": "Jira (company)"
+  },
+  {
+    "id": "c-2",
+    "tool": "Confluence",
+    "site_url": "https://confluence.example.com",
+    "display_name": "Confluence (company)"
+  },
+  {
+    "id": "c-3",
+    "tool": "GitLab",
+    "site_url": "https://gitlab.example.com",
+    "display_name": "GitLab (company)"
+  }
+]
