@@ -18,7 +18,8 @@ import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { diffLines } from '@/lib/diff'
-import { useJournal, useSettings } from '@/api/hooks'
+import { planVersions } from '@/lib/opencode'
+import { useJournal, useOpencodeMessages, useSettings } from '@/api/hooks'
 import { kanbanColumns, opencodeSteps, stages, type KanbanColumnId, type OpencodeStepId, type Role, type StageId, type StageOutput, type UserStory } from '@/lib/domain'
 import { stageForColumn } from '@/lib/story-workflow'
 import { cn, scrollParent, timeAgo } from '@/lib/utils'
@@ -114,7 +115,7 @@ export function StoryDetail({ story, role, approving = false, onEditingChange, o
   }
 
   return (
-    <div className="flex min-h-0 flex-col">
+    <div className="flex h-full min-h-0 flex-col">
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <IssueTypeIcon type={story.type} />
@@ -142,15 +143,27 @@ export function StoryDetail({ story, role, approving = false, onEditingChange, o
       <div className={cn('sticky -top-6 z-20 mb-6 border-b bg-background pt-4 pb-2 transition-colors', !titleHidden && 'border-transparent')}>
         <Tabs value={tab} onValueChange={(value) => changeTab(value as Tab)}>
           <TabsList className="w-full">
-            {stages.map((item) => (
+            {stages
+              .filter((item) => item.id !== 'plan')
+              .map((item) => (
+                <TabsTrigger key={item.id} value={item.id}>
+                  <StageStatusIcon output={story.stages[item.id]} isCurrent={currentStage?.id === item.id} />
+                  {item.label}
+                </TabsTrigger>
+              ))}
+            {/* Document steps above, OpenCode session steps after the divider. */}
+            <span className="flex shrink-0 items-center gap-1 px-2 text-xs text-muted-foreground" title="Steps run by OpenCode">
+              <span className="h-4 w-px bg-border" aria-hidden="true" />
+              <Bot className="ml-1 size-3.5" aria-hidden="true" />
+              <span className="hidden sm:inline">OpenCode</span>
+            </span>
+            {opencodeSteps.map((item) => (
               <TabsTrigger key={item.id} value={item.id}>
-                <StageStatusIcon output={story.stages[item.id]} isCurrent={currentStage?.id === item.id} />
-                {item.label}
-              </TabsTrigger>
-            ))}
-            {opencodeSteps.slice(1).map((item) => (
-              <TabsTrigger key={item.id} value={item.id}>
-                <StepStatusIcon story={story} column={item.column} />
+                {item.id === 'plan' ? (
+                  <StageStatusIcon output={story.stages.plan} isCurrent={currentStage?.id === 'plan'} />
+                ) : (
+                  <StepStatusIcon story={story} column={item.column} />
+                )}
                 {item.label}
               </TabsTrigger>
             ))}
@@ -326,6 +339,7 @@ type StoryReviewProps = {
 // Approval for the story's current stage, shown in the page sidebar so it stays visible while reading.
 export function StoryReview({ story, role, approving, editing, onApprove }: StoryReviewProps) {
   const stage = stageForColumn(story.column)
+  const { data: messages = [] } = useOpencodeMessages(story.id, stage?.id === 'plan' && Boolean(story.opencode))
   const output = stage && story.stages[stage.id]
   if (!stage || !output) return null
   const canValidate = stage.approvers.includes(role)
@@ -337,6 +351,7 @@ export function StoryReview({ story, role, approving, editing, onApprove }: Stor
         storyKey={story.key}
         stageLabel={stage.label}
         isPlan={stage.id === 'plan'}
+        planVersion={stage.id === 'plan' ? planVersions(messages, story.opencode).at(-1)?.version : undefined}
         disabled={!canValidate || editing}
         pending={approving}
         onApprove={onApprove}

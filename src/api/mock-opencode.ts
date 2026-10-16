@@ -14,7 +14,7 @@ const timers = new Map<string, number[]>()
 
 function message(sessionID: string, role: 'user' | 'assistant', agent: string): OpencodeMessage {
   const info: OpencodeMessage['info'] = { id: newId('msg'), sessionID, role, agent, time: { created: Date.now() } }
-  if (role === 'assistant') Object.assign(info, { providerID: 'anthropic', modelID: 'claude-sonnet-4-5' })
+  if (role === 'assistant') Object.assign(info, { providerID: 'anthropic', modelID: 'claude-sonnet-4-5', path: { cwd: '/workspace/cashgpt', root: '/workspace/cashgpt' } })
   return { info, parts: [] }
 }
 

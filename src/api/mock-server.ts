@@ -189,7 +189,19 @@ const routes: Record<string, Handler> = {
   'GET /us/{us_id}/opencode/messages': ({ us_id }) => opencodeOf(story(us_id).id),
   'POST /us/{us_id}/opencode/messages': ({ us_id }, body: { text: string }) => {
     const item = story(us_id)
-    runOpencode(item, opencodeOf(item.id), { text: body.text, agent: item.column === 'review-for-dev' ? 'plan' : 'build', script: replyScript(body.text) })
+    if (item.column !== 'review-for-dev' || !item.stages.plan) {
+      runOpencode(item, opencodeOf(item.id), { text: body.text, agent: 'build', script: replyScript(body.text) })
+      return
+    }
+    // During the plan step, each answer is a new plan version that replaces the one to approve.
+    const next = (item.stages.plan.markdown.match(/^\d+\. /gm) ?? []).length + 1
+    const plan = `${item.stages.plan.markdown}\n${next}. **Address the feedback: ${body.text.replace(/\s+/g, ' ').slice(0, 80)}**\n   \`src/api/journal.ts\``
+    runOpencode(item, opencodeOf(item.id), {
+      text: body.text,
+      agent: 'plan',
+      script: planScript(item, plan),
+      onDone: () => (item.stages.plan = { markdown: plan, sources: [], chat: [] }),
+    })
   },
   'POST /us/{us_id}/opencode/abort': ({ us_id }) => abortOpencode(story(us_id), opencodeOf(us_id)),
   'POST /us/{us_id}/finalize': ({ us_id }) => story(us_id),

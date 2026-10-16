@@ -7,17 +7,20 @@ type ApproveStoryDialogProps = {
   storyKey: string
   stageLabel: string
   isPlan: boolean
+  // Plan version up for approval, when OpenCode wrote several.
+  planVersion?: number
   disabled: boolean
   pending: boolean
   onApprove: () => void
   className?: string
 }
 
-export function ApproveStoryDialog({ storyKey, stageLabel, isPlan, disabled, pending, onApprove, className }: ApproveStoryDialogProps) {
+export function ApproveStoryDialog({ storyKey, stageLabel, isPlan, planVersion, disabled, pending, onApprove, className }: ApproveStoryDialogProps) {
   const [open, setOpen] = useState(false)
   const cancelRef = useRef<HTMLButtonElement>(null)
   const confirming = useRef(false)
-  const label = isPlan ? 'Approve & send to AI' : 'Approve'
+  const plan = planVersion ? `plan v${planVersion}` : 'plan'
+  const label = isPlan ? `Approve ${plan}` : 'Approve'
 
   function confirm() {
     if (disabled || pending || confirming.current) return
@@ -37,12 +40,11 @@ export function ApproveStoryDialog({ storyKey, stageLabel, isPlan, disabled, pen
       </DialogTrigger>
       <DialogContent initialFocus={cancelRef}>
         <DialogHeader>
-          <DialogTitle>{isPlan ? 'Approve and send to AI?' : 'Approve this document?'}</DialogTitle>
+          <DialogTitle>{isPlan ? `Approve ${plan}?` : 'Approve this document?'}</DialogTitle>
           <DialogDescription>
-            Are you sure you want to approve the {stageLabel.toLowerCase()} document for {storyKey}?
             {isPlan
-              ? ' This will send the approved plan to the coding agent.'
-              : ' This will move the story to the next step.'}
+              ? `Are you sure you want to approve ${plan} for ${storyKey}? OpenCode will start coding it.`
+              : `Are you sure you want to approve the ${stageLabel.toLowerCase()} document for ${storyKey}? This will move the story to the next step.`}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>

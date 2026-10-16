@@ -107,6 +107,8 @@ export type OpencodeMessageInfo = {
   // Assistant messages stay open (no completed time) while OpenCode is working.
   time: { created: number; completed?: number }
   agent?: string
+  // Assistant messages: the session's working directory and repository root.
+  path?: { cwd: string; root: string }
   modelID?: string
   providerID?: string
   cost?: number

@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { useStickToBottom } from 'use-stick-to-bottom'
+import { useEffect, useRef, useState } from 'react'
 import {
   ArrowDown,
   Brain,
@@ -10,6 +9,7 @@ import {
   FileCode,
   FilePen,
   FileSearch,
+  FileText,
   FolderTree,
   Globe,
   ListTodo,
@@ -27,21 +27,18 @@ import { Markdown } from '@/components/markdown'
 import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { opencodeSteps, type OpencodeMessage, type OpencodePart, type OpencodeStepId, type UserStory } from '@/lib/domain'
+import { changedFiles, latestTodos, planAnchor, planVersions, splitBySteps, splitPlan, type Todo, type ToolPart } from '@/lib/opencode'
 import { useAppDispatch } from '@/lib/store'
-import { cn, scrollParent } from '@/lib/utils'
+import { useFollowBottom } from '@/hooks/use-follow-bottom'
+import { cn } from '@/lib/utils'
 
-type ToolPart = Extract<OpencodePart, { type: 'tool' }>
+// Version shown on an answer that contains a plan.
+type PlanBadge = { version: number; status: 'pending' | 'approved' | 'replaced'; latest: number }
 
-// Messages of one step: from its first message to the start of the next step.
-function splitBySteps(messages: OpencodeMessage[], starts: UserStory['opencode']) {
-  const bySteps = new Map<OpencodeStepId, OpencodeMessage[]>()
-  let step: OpencodeStepId = 'plan'
-  for (const message of messages) {
-    const started = opencodeSteps.find((item) => starts?.steps[item.id] === message.info.id)
-    if (started) step = started.id
-    bySteps.set(step, [...(bySteps.get(step) ?? []), message])
-  }
-  return bySteps
+const planStatusLabels: Record<PlanBadge['status'], string> = {
+  pending: 'Up for approval',
+  approved: 'Approved',
+  replaced: 'Replaced',
 }
 
 type OpencodeSessionProps = {
@@ -54,21 +51,14 @@ type OpencodeSessionProps = {
 }
 
 // The OpenCode session of a story, as a chat: prompts sent, answers, reasoning and tool calls.
-// Messages flow in the page scroller, which keeps following new content while the user is at the bottom.
+// Messages flow in the page scroller, which opens at the latest message and follows the stream.
 export function OpencodeSession({ story, step, isCurrent, emptyText }: OpencodeSessionProps) {
   const { data: messages = [], isLoading, busy } = useOpencodeMessages(story.id, Boolean(story.opencode))
   const { send, abort } = useOpencodeMutations()
   const [showEarlier, setShowEarlier] = useState(false)
   const dispatch = useAppDispatch()
   const wasBusy = useRef(busy)
-  const { scrollRef, contentRef, isAtBottom, scrollToBottom } = useStickToBottom({ initial: 'instant', resize: 'smooth' })
-  const attach = useCallback(
-    (node: HTMLDivElement | null) => {
-      scrollRef(node && scrollParent(node))
-      contentRef(node)
-    },
-    [scrollRef, contentRef],
-  )
+  const { contentRef, atBottom, scrollToBottom } = useFollowBottom(!isLoading)
 
   // An answer that ends can move the story (plan ready, merge request opened).
   useEffect(() => {
@@ -83,9 +73,19 @@ export function OpencodeSession({ story, step, isCurrent, emptyText }: OpencodeS
   const stepBusy = isCurrent && busy
   const agent = opencodeSteps[stepIndex].agent
 
+  const versions = planVersions(messages, story.opencode)
+  const latestPlan = versions.at(-1)
+  const planApproved = story.stages.plan?.review?.decision === 'approved'
+  const badges = new Map<string, PlanBadge>(
+    versions.map(({ messageId, version }) => [
+      messageId,
+      { version, latest: versions.length, status: version < versions.length ? 'replaced' : planApproved ? 'approved' : 'pending' },
+    ]),
+  )
+
   return (
     <>
-      <div ref={attach} className="flex flex-col gap-6 pb-8">
+      <div ref={contentRef} className="flex flex-1 flex-col gap-6 pb-8">
         {earlier.length > 0 && (
           <button
             type="button"
@@ -98,7 +98,7 @@ export function OpencodeSession({ story, step, isCurrent, emptyText }: OpencodeS
         )}
         {showEarlier &&
           earlier.map((item) => (
-            <StepMessages key={item.id} label={item.label} messages={bySteps.get(item.id) ?? []} />
+            <StepMessages key={item.id} label={item.label} messages={bySteps.get(item.id) ?? []} badges={badges} />
           ))}
 
         {isLoading ? (
@@ -107,7 +107,7 @@ export function OpencodeSession({ story, step, isCurrent, emptyText }: OpencodeS
             Loading the OpenCode session…
           </p>
         ) : current.length ? (
-          <StepMessages label={earlier.length && showEarlier ? opencodeSteps[stepIndex].label : undefined} messages={current} />
+          <StepMessages label={earlier.length && showEarlier ? opencodeSteps[stepIndex].label : undefined} messages={current} badges={badges} />
         ) : (
           <p className="flex items-center justify-center gap-2 rounded-lg border border-dashed p-8 text-sm text-muted-foreground">
             <CircleDashed className="size-4" aria-hidden="true" />
@@ -119,16 +119,27 @@ export function OpencodeSession({ story, step, isCurrent, emptyText }: OpencodeS
 
       {/* Pinned to the bottom of the page scroller, like the stage chat composer. */}
       <div className="sticky -bottom-10 z-10 -mb-10 bg-linear-to-t from-background from-75% to-transparent pt-6 pb-3">
-        {!isAtBottom && (
+        {!atBottom && (
           <Button
             variant="outline"
             size="icon"
-            className="absolute -top-6 left-1/2 -translate-x-1/2 rounded-full bg-background shadow-md"
-            onClick={() => void scrollToBottom()}
+            className="absolute -top-5 left-1/2 -translate-x-1/2 rounded-full bg-background shadow-md"
+            onClick={() => scrollToBottom()}
             aria-label="Scroll to the latest message"
           >
             <ArrowDown />
           </Button>
+        )}
+        {step === 'plan' && latestPlan && (
+          <button
+            type="button"
+            onClick={() => document.getElementById(planAnchor(latestPlan.messageId))?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+            className="mb-2 ml-3 flex items-center gap-1.5 rounded-full border bg-background px-2.5 py-1 text-xs shadow-sm transition-colors hover:bg-muted"
+          >
+            <FileText className="size-3.5 text-primary" aria-hidden="true" />
+            <span className="font-medium">Plan v{latestPlan.version}</span>
+            <span className="text-muted-foreground">· {planApproved ? 'approved' : 'up for approval'} · View</span>
+          </button>
         )}
         <PromptInput
           label="Message to OpenCode"
@@ -137,7 +148,7 @@ export function OpencodeSession({ story, step, isCurrent, emptyText }: OpencodeS
           busy={stepBusy}
           onSubmit={(text) => {
             void send.trigger({ id: story.id, text })
-            void scrollToBottom()
+            scrollToBottom()
           }}
           onStop={() => void abort.trigger(story.id)}
         />
@@ -146,7 +157,7 @@ export function OpencodeSession({ story, step, isCurrent, emptyText }: OpencodeS
   )
 }
 
-function StepMessages({ label, messages }: { label?: string; messages: OpencodeMessage[] }) {
+function StepMessages({ label, messages, badges }: { label?: string; messages: OpencodeMessage[]; badges: Map<string, PlanBadge> }) {
   return (
     <>
       {label && (
@@ -157,7 +168,7 @@ function StepMessages({ label, messages }: { label?: string; messages: OpencodeM
         </div>
       )}
       {messages.map((message) =>
-        message.info.role === 'user' ? <UserMessage key={message.info.id} message={message} /> : <AssistantMessage key={message.info.id} message={message} />,
+        message.info.role === 'user' ? <UserMessage key={message.info.id} message={message} /> : <AssistantMessage key={message.info.id} message={message} plan={badges.get(message.info.id)} />,
       )}
     </>
   )
@@ -189,7 +200,22 @@ function UserMessage({ message }: { message: OpencodeMessage }) {
 
 const numberFormat = new Intl.NumberFormat('en', { notation: 'compact' })
 
-function AssistantMessage({ message }: { message: OpencodeMessage }) {
+// Consecutive tool calls collapse into one summary line; step markers are invisible.
+type Block = { kind: 'part'; part: OpencodePart } | { kind: 'tools'; parts: ToolPart[] }
+
+function toBlocks(parts: OpencodePart[]): Block[] {
+  const blocks: Block[] = []
+  for (const part of parts) {
+    if (part.type === 'step-start' || part.type === 'step-finish') continue
+    const last = blocks.at(-1)
+    if (part.type === 'tool' && last?.kind === 'tools') last.parts.push(part)
+    else if (part.type === 'tool') blocks.push({ kind: 'tools', parts: [part] })
+    else blocks.push({ kind: 'part', part })
+  }
+  return blocks
+}
+
+function AssistantMessage({ message, plan }: { message: OpencodeMessage; plan?: PlanBadge }) {
   const { info, parts } = message
   const tokens = info.tokens && info.tokens.input + info.tokens.output
 
@@ -202,9 +228,15 @@ function AssistantMessage({ message }: { message: OpencodeMessage }) {
         {info.modelID && <span>{info.modelID}</span>}
       </p>
       <div className="space-y-3 pl-7">
-        {parts.map((part) => (
-          <Part key={part.id} part={part} live={!info.time.completed} />
-        ))}
+        {toBlocks(parts).map((block) =>
+          block.kind === 'part' ? (
+            <Part key={block.part.id} part={block.part} live={!info.time.completed} plan={plan} />
+          ) : block.parts.length === 1 ? (
+            <ToolCall key={block.parts[0].id} part={block.parts[0]} />
+          ) : (
+            <ToolGroup key={block.parts[0].id} parts={block.parts} />
+          ),
+        )}
         {info.error && (
           <p className="flex items-center gap-1.5 text-sm text-red-600 dark:text-red-400">
             <CircleAlert className="size-4" aria-hidden="true" />
@@ -223,10 +255,10 @@ function AssistantMessage({ message }: { message: OpencodeMessage }) {
   )
 }
 
-function Part({ part, live }: { part: OpencodePart; live: boolean }) {
+function Part({ part, live, plan }: { part: OpencodePart; live: boolean; plan?: PlanBadge }) {
   switch (part.type) {
     case 'text':
-      return part.synthetic ? null : <Markdown className={chatMarkdown}>{part.text}</Markdown>
+      return part.synthetic ? null : plan ? <PlanText text={part.text} plan={plan} messageId={part.messageID} /> : <Markdown className={chatMarkdown}>{part.text}</Markdown>
     case 'reasoning':
       return <Reasoning text={part.text} seconds={part.time.end ? Math.max(1, Math.round((part.time.end - part.time.start) / 1000)) : undefined} live={live && !part.time.end} />
     case 'tool':
@@ -252,6 +284,53 @@ function Part({ part, live }: { part: OpencodePart; live: boolean }) {
     default:
       return null
   }
+}
+
+// A plan answer: OpenCode's comment, then the plan itself as a document card.
+function PlanText({ text, plan, messageId }: { text: string; plan: PlanBadge; messageId: string }) {
+  const { intro, plan: document } = splitPlan(text)
+  const replaced = plan.status === 'replaced'
+
+  return (
+    <>
+      {intro && <Markdown className={chatMarkdown}>{intro}</Markdown>}
+      {document && (
+        <section
+          id={planAnchor(messageId)}
+          aria-label={`Plan version ${plan.version}`}
+          className={cn('scroll-mt-28 rounded-xl border bg-card p-4 shadow-xs', !replaced && 'border-primary/40 ring-1 ring-primary/15')}
+        >
+          <p className="mb-3 flex items-center gap-2 text-xs">
+            <FileText className={cn('size-3.5', replaced ? 'text-muted-foreground' : 'text-primary')} aria-hidden="true" />
+            <span className="font-medium">Plan v{plan.version}</span>
+            <span
+              className={cn(
+                'rounded-full border px-1.5 py-px',
+                plan.status === 'pending' && 'border-primary/30 bg-primary/10 text-primary',
+                plan.status === 'approved' && 'border-green-600/30 bg-green-600/10 text-green-700 dark:text-green-400',
+                replaced && 'text-muted-foreground',
+              )}
+            >
+              {replaced ? `Replaced by v${plan.latest}` : planStatusLabels[plan.status]}
+            </span>
+          </p>
+          {replaced ? (
+            <Collapsible>
+              <CollapsibleTrigger className="group flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+                <ChevronRight className="size-3.5 transition-transform group-data-[panel-open]:rotate-90" aria-hidden="true" />
+                Show this version
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <Markdown className={cn(chatMarkdown, 'pt-3 text-muted-foreground')}>{document}</Markdown>
+              </CollapsibleContent>
+            </Collapsible>
+          ) : (
+            <Markdown className={chatMarkdown}>{document}</Markdown>
+          )}
+        </section>
+      )}
+    </>
+  )
 }
 
 function Reasoning({ text, seconds, live }: { text: string; seconds?: number; live: boolean }) {
@@ -282,6 +361,51 @@ const tools: Record<string, { label: string; icon: LucideIcon }> = {
   todowrite: { label: 'Todos', icon: ListTodo },
   todoread: { label: 'Todos', icon: ListTodo },
   task: { label: 'Subagent', icon: Wrench },
+}
+
+// What a run of tool calls did, e.g. "Read 2 files · 1 search · ran 1 command".
+function summarize(parts: ToolPart[]) {
+  const count = (names: string[]) => parts.filter((part) => names.includes(part.tool)).length
+  const plural = (n: number, one: string, many: string) => (n ? [`${n} ${n > 1 ? many : one}`] : [])
+  const known = ['read', 'grep', 'glob', 'list', 'edit', 'write', 'bash', 'todowrite', 'todoread']
+  const items = [
+    ...plural(count(['read']), 'file read', 'files read'),
+    ...plural(count(['grep', 'glob', 'list']), 'search', 'searches'),
+    ...plural(count(['edit', 'write']), 'file edited', 'files edited'),
+    ...plural(count(['bash']), 'command', 'commands'),
+    ...(count(['todowrite', 'todoread']) ? ['todos updated'] : []),
+    ...plural(parts.filter((part) => !known.includes(part.tool)).length, 'other tool', 'other tools'),
+  ]
+  return items.join(' · ')
+}
+
+function ToolGroup({ parts }: { parts: ToolPart[] }) {
+  const running = parts.find((part) => part.state.status === 'pending' || part.state.status === 'running')
+  const failed = parts.some((part) => part.state.status === 'error')
+
+  return (
+    <Collapsible className="text-sm">
+      <CollapsibleTrigger className="group flex w-full items-center gap-2 rounded-lg px-1 py-1 text-left text-muted-foreground hover:text-foreground">
+        {running ? (
+          <Loader className="size-4 shrink-0 animate-spin text-primary" aria-label="Running" />
+        ) : (
+          <Wrench className="size-4 shrink-0" aria-hidden="true" />
+        )}
+        <span className="min-w-0 truncate">
+          {running ? `${(tools[running.tool] ?? { label: running.tool }).label} ${running.state.title ?? ''}…` : summarize(parts)}
+        </span>
+        {failed && <CircleAlert className="size-3.5 shrink-0 text-red-600 dark:text-red-400" aria-label="A tool failed" />}
+        <ChevronRight className="size-3.5 shrink-0 transition-transform group-data-[panel-open]:rotate-90" aria-hidden="true" />
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <div className="mt-2 space-y-2 border-l-2 pl-3">
+          {parts.map((part) => (
+            <ToolCall key={part.id} part={part} />
+          ))}
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
+  )
 }
 
 function ToolCall({ part }: { part: ToolPart }) {
@@ -323,24 +447,7 @@ function ToolDetails({ part }: { part: ToolPart }) {
   const input = state.input
   const diff = typeof state.metadata?.diff === 'string' ? state.metadata.diff : undefined
 
-  if (part.tool === 'todowrite' && Array.isArray(input.todos)) {
-    return (
-      <ul className="space-y-1">
-        {(input.todos as { id: string; content: string; status: string }[]).map((todo) => (
-          <li key={todo.id} className={cn('flex items-center gap-2', todo.status === 'completed' && 'text-muted-foreground line-through')}>
-            {todo.status === 'completed' ? (
-              <CircleCheck className="size-3.5 shrink-0 text-green-600 dark:text-green-400" aria-hidden="true" />
-            ) : todo.status === 'in_progress' ? (
-              <Loader className="size-3.5 shrink-0 animate-spin text-primary" aria-hidden="true" />
-            ) : (
-              <CircleDashed className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
-            )}
-            {todo.content}
-          </li>
-        ))}
-      </ul>
-    )
-  }
+  if (part.tool === 'todowrite' && Array.isArray(input.todos)) return <TodoList todos={input.todos as Todo[]} />
 
   return (
     <>
@@ -353,6 +460,25 @@ function ToolDetails({ part }: { part: ToolPart }) {
       {state.status === 'error' && state.error && <pre className={cn(pre, 'text-red-600 dark:text-red-400')}>{state.error}</pre>}
       {state.output && <pre className={pre}>{state.output}</pre>}
     </>
+  )
+}
+
+function TodoList({ todos }: { todos: Todo[] }) {
+  return (
+    <ul className="space-y-1">
+      {todos.map((todo) => (
+        <li key={todo.id} className={cn('flex items-center gap-2', todo.status === 'completed' && 'text-muted-foreground line-through')}>
+          {todo.status === 'completed' ? (
+            <CircleCheck className="size-3.5 shrink-0 text-green-600 dark:text-green-400" aria-hidden="true" />
+          ) : todo.status === 'in_progress' ? (
+            <Loader className="size-3.5 shrink-0 animate-spin text-primary" aria-hidden="true" />
+          ) : (
+            <CircleDashed className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+          )}
+          {todo.content}
+        </li>
+      ))}
+    </ul>
   )
 }
 
@@ -373,6 +499,45 @@ function Diff({ diff }: { diff: string }) {
           {line}
         </div>
       ))}
+    </div>
+  )
+}
+
+// Coding progress for the story sidebar: OpenCode's latest todo list and the files it changed.
+export function CodingProgress({ story }: { story: UserStory }) {
+  const { data: messages = [] } = useOpencodeMessages(story.id, Boolean(story.opencode?.steps.coding))
+  const coding = splitBySteps(messages, story.opencode).get('coding') ?? []
+  const todos = latestTodos(coding)
+  const files = changedFiles(coding)
+  if (!story.opencode?.steps.coding || (!todos.length && !files.length)) return null
+  const done = todos.filter((todo) => todo.status === 'completed').length
+
+  return (
+    <div className="space-y-4 text-sm">
+      {todos.length > 0 && (
+        <div className="space-y-2">
+          <p className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>Tasks</span>
+            <span className="tabular-nums">
+              {done}/{todos.length}
+            </span>
+          </p>
+          <TodoList todos={todos} />
+        </div>
+      )}
+      {files.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs text-muted-foreground">Changed files · {files.length}</p>
+          <ul className="space-y-1">
+            {files.map((file) => (
+              <li key={file} className="flex items-center gap-1.5 font-mono text-xs" title={file}>
+                <FilePen className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                <span className="truncate">{file}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   )
 }

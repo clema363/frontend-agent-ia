@@ -41,10 +41,10 @@ it('only approves after confirmation, and cancel leaves the story untouched', as
   expect(approve).toHaveBeenCalledTimes(1)
 })
 
-it('explains sending to the coding agent before approving a plan', async () => {
-  await act(async () => root.render(<ApproveStoryDialog storyKey="US-42" stageLabel="Plan" isPlan disabled={false} pending={false} onApprove={approve} />))
-  await act(async () => button(container, 'Approve & send to AI').click())
-  expect(document.querySelector('[role="dialog"]')?.textContent).toContain('send the approved plan to the coding agent')
+it('names the plan version and explains that OpenCode starts coding', async () => {
+  await act(async () => root.render(<ApproveStoryDialog storyKey="US-42" stageLabel="Plan" isPlan planVersion={2} disabled={false} pending={false} onApprove={approve} />))
+  await act(async () => button(container, 'Approve plan v2').click())
+  expect(document.querySelector('[role="dialog"]')?.textContent).toContain('approve plan v2 for US-42? OpenCode will start coding it')
   expect(approve).not.toHaveBeenCalled()
 })
 
@@ -55,5 +55,5 @@ it('blocks approval when a request is already pending or validation is unavailab
   expect(document.querySelector('[role="dialog"]')).toBeNull()
   expect(approve).not.toHaveBeenCalled()
   await act(async () => root.render(<ApproveStoryDialog storyKey="US-42" stageLabel="Plan" isPlan disabled pending={false} onApprove={approve} />))
-  expect(button(container, 'Approve & send to AI').disabled).toBe(true)
+  expect(button(container, 'Approve plan').disabled).toBe(true)
 })

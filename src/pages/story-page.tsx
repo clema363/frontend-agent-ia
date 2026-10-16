@@ -6,6 +6,7 @@ import { ArrowLeft, FolderOpen, SquareKanban, Tag, User } from 'lucide-react'
 import { useFieldConfig, useMe, useProjects, useStories, useStoryMutations } from '@/api/hooks'
 import { MergeRequest } from '@/components/kanban/coding-agent'
 import { ColumnIcon, IssueTypeIcon, PriorityIcon } from '@/components/kanban/issue-meta'
+import { CodingProgress } from '@/components/kanban/opencode-session'
 import { StoryDetail, StoryReview, type StoryActions } from '@/components/kanban/story-detail'
 import { PageHeader } from '@/components/layout/page-header'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -72,7 +73,8 @@ export function StoryPage() {
         </div>
       ) : (
         <div className="mx-auto grid max-w-7xl items-start gap-10 pt-4 lg:grid-cols-[minmax(0,1fr)_260px] lg:gap-16 lg:px-6 lg:pt-10 xl:gap-24">
-          <section className="min-w-0">
+          {/* Stretched to the row height so the sticky composer reaches the page bottom even when the sidebar is taller. */}
+          <section className="min-w-0 self-stretch">
             <StoryDetail
               key={`${story.id}-${story.column}`}
               story={story}
@@ -145,6 +147,7 @@ function JiraProperties({ story, review }: { story: UserStory; review: ReactNode
         <dl><Property label="Current step" icon={<ColumnIcon column={story.column} />}>{kanbanColumns.find((column) => column.id === story.column)?.title}</Property></dl>
         {review}
         {story.codingAgent && <MergeRequest run={story.codingAgent} />}
+        <CodingProgress story={story} />
       </section>
       <section className="space-y-5">
         <h2 className="text-sm font-medium text-muted-foreground">Jira properties</h2>
