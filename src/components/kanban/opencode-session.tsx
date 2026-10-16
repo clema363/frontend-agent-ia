@@ -180,7 +180,8 @@ function Thinking({ messages }: { messages: OpencodeMessage[] }) {
   const started = last?.info.role === 'assistant' && last.parts.some((part) => part.type === 'text' || part.type === 'tool' || part.type === 'reasoning')
   if (started || !opencodeIsBusy(messages)) return null
   return (
-    <p className="flex items-center gap-2 text-sm text-muted-foreground">
+    // Same line as an answer header, so the answer takes its place without a jump.
+    <p className="flex items-center gap-2 text-xs text-muted-foreground">
       <AgentAvatar />
       <span className="animate-pulse">OpenCode is thinking…</span>
     </p>
@@ -231,9 +232,8 @@ function AssistantMessage({ message, plan }: { message: OpencodeMessage; plan?: 
         {toBlocks(parts).map((block) =>
           block.kind === 'part' ? (
             <Part key={block.part.id} part={block.part} live={!info.time.completed} plan={plan} />
-          ) : block.parts.length === 1 ? (
-            <ToolCall key={block.parts[0].id} part={block.parts[0]} />
           ) : (
+            // Always a summary line, even for one call, so the layout doesn't switch when the next one arrives.
             <ToolGroup key={block.parts[0].id} parts={block.parts} />
           ),
         )}
@@ -258,7 +258,7 @@ function AssistantMessage({ message, plan }: { message: OpencodeMessage; plan?: 
 function Part({ part, live, plan }: { part: OpencodePart; live: boolean; plan?: PlanBadge }) {
   switch (part.type) {
     case 'text':
-      return part.synthetic ? null : plan ? <PlanText text={part.text} plan={plan} messageId={part.messageID} /> : <Markdown className={chatMarkdown}>{part.text}</Markdown>
+      return part.synthetic ? null : <TextPart text={part.text} live={live} plan={plan} messageId={part.messageID} />
     case 'reasoning':
       return <Reasoning text={part.text} seconds={part.time.end ? Math.max(1, Math.round((part.time.end - part.time.start) / 1000)) : undefined} live={live && !part.time.end} />
     case 'tool':
@@ -286,10 +286,34 @@ function Part({ part, live, plan }: { part: OpencodePart; live: boolean; plan?: 
   }
 }
 
+// Reveals streamed text at a steady pace instead of in polling-sized chunks, a word at a time.
+// Text that was already complete when it first rendered shows at once.
+function useSmoothText(text: string, live: boolean) {
+  const [shown, setShown] = useState(live ? 0 : text.length)
+  useEffect(() => {
+    if (shown >= text.length) return
+    const frame = requestAnimationFrame(() =>
+      // Catch up faster when far behind: about a third of a second per chunk.
+      setShown((count) => Math.min(text.length, count + Math.max(2, Math.ceil((text.length - count) / 20)))),
+    )
+    return () => cancelAnimationFrame(frame)
+  }, [shown, text])
+  if (shown >= text.length) return text
+  const cut = text.lastIndexOf(' ', shown)
+  return text.slice(0, cut > 0 ? cut : shown)
+}
+
+function TextPart({ text, live, plan, messageId }: { text: string; live: boolean; plan?: PlanBadge; messageId: string }) {
+  const visible = useSmoothText(text, live)
+  // A plan being written already gets its card, so nothing reflows when the answer completes.
+  if (plan || (live && splitPlan(visible).plan)) return <PlanText text={visible} plan={plan} messageId={messageId} />
+  return <Markdown className={chatMarkdown}>{visible}</Markdown>
+}
+
 // A plan answer: OpenCode's comment, then the plan itself as a document card.
-function PlanText({ text, plan, messageId }: { text: string; plan: PlanBadge; messageId: string }) {
+function PlanText({ text, plan, messageId }: { text: string; plan?: PlanBadge; messageId: string }) {
   const { intro, plan: document } = splitPlan(text)
-  const replaced = plan.status === 'replaced'
+  const replaced = plan?.status === 'replaced'
 
   return (
     <>
@@ -297,21 +321,22 @@ function PlanText({ text, plan, messageId }: { text: string; plan: PlanBadge; me
       {document && (
         <section
           id={planAnchor(messageId)}
-          aria-label={`Plan version ${plan.version}`}
+          aria-label={plan ? `Plan version ${plan.version}` : 'Plan being written'}
           className={cn('scroll-mt-28 rounded-xl border bg-card p-4 shadow-xs', !replaced && 'border-primary/40 ring-1 ring-primary/15')}
         >
           <p className="mb-3 flex items-center gap-2 text-xs">
             <FileText className={cn('size-3.5', replaced ? 'text-muted-foreground' : 'text-primary')} aria-hidden="true" />
-            <span className="font-medium">Plan v{plan.version}</span>
+            <span className="font-medium">{plan ? `Plan v${plan.version}` : 'Plan'}</span>
             <span
               className={cn(
                 'rounded-full border px-1.5 py-px',
-                plan.status === 'pending' && 'border-primary/30 bg-primary/10 text-primary',
-                plan.status === 'approved' && 'border-green-600/30 bg-green-600/10 text-green-700 dark:text-green-400',
+                (!plan || plan.status === 'pending') && 'border-primary/30 bg-primary/10 text-primary',
+                plan?.status === 'approved' && 'border-green-600/30 bg-green-600/10 text-green-700 dark:text-green-400',
                 replaced && 'text-muted-foreground',
+                !plan && 'animate-pulse',
               )}
             >
-              {replaced ? `Replaced by v${plan.latest}` : planStatusLabels[plan.status]}
+              {!plan ? 'Writing…' : replaced ? `Replaced by v${plan.latest}` : planStatusLabels[plan.status]}
             </span>
           </p>
           {replaced ? (

@@ -6,7 +6,7 @@ const THRESHOLD = 80
 
 // Chat-like scrolling on the page scroller: open at the latest message, follow new content
 // (streamed answers) while the reader is at the bottom, and stop following once they scroll up.
-// Waits until the messages are loaded so the first jump to the bottom is instant.
+// Waits until the messages are loaded before jumping to the bottom.
 export function useFollowBottom(ready: boolean) {
   const [content, setContent] = useState<HTMLElement | null>(null)
   const [atBottom, setAtBottom] = useState(true)
@@ -24,7 +24,6 @@ export function useFollowBottom(ready: boolean) {
     const scroller = scrollParent(content)
     scrollerRef.current = scroller
     let lastTop = scroller.scrollTop
-    let first = true
 
     const onScroll = () => {
       const distance = scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight
@@ -34,10 +33,10 @@ export function useFollowBottom(ready: boolean) {
       setAtBottom(distance < THRESHOLD)
     }
 
-    // Fires once when observed (opening the tab) and whenever messages grow.
+    // Fires once when observed (opening the tab) and whenever messages grow. Following is
+    // instant: chained smooth scrolls interrupt each other while text streams and the page jerks.
     const observer = new ResizeObserver(() => {
-      if (following.current) scroller.scrollTo({ top: scroller.scrollHeight, behavior: first ? 'instant' : 'smooth' })
-      first = false
+      if (following.current) scroller.scrollTop = scroller.scrollHeight
       onScroll()
     })
     observer.observe(content)
