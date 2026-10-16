@@ -1,4 +1,4 @@
-import { useRef, useState, type Ref } from 'react'
+import { useEffect, useRef, useState, type Ref } from 'react'
 import {
   ArrowUp,
   Bot,
@@ -39,9 +39,11 @@ type StoryDetailProps = StoryActions & {
   story: UserStory
   role: Role
   approving?: boolean
+  // Lets the page block approval while the document has unsaved edits.
+  onEditingChange?: (editing: boolean) => void
 }
 
-export function StoryDetail({ story, role, approving = false, ...actions }: StoryDetailProps) {
+export function StoryDetail({ story, role, approving = false, onEditingChange, ...actions }: StoryDetailProps) {
   const currentStage = stageForColumn(story.column)
   const jiraUrl = useSettings().data?.jiraUrl
   const sentToAi = story.column === 'sent-to-ai'
@@ -57,6 +59,11 @@ export function StoryDetail({ story, role, approving = false, ...actions }: Stor
   const isCurrent = currentStage?.id === tab
   const canValidate = stage.approvers.includes(role)
   const previousOutput = tab === 'refinement' ? story.stages.authoring : undefined
+
+  useEffect(() => {
+    onEditingChange?.(editing)
+    return () => onEditingChange?.(false)
+  }, [editing, onEditingChange])
 
   function changeTab(value: Tab) {
     setTab(value)
@@ -130,11 +137,24 @@ export function StoryDetail({ story, role, approving = false, ...actions }: Stor
                   <Bot className="size-3.5" aria-hidden="true" />
                   {stage.agent}
                   {output.editedBy && <span>· edited by {output.editedBy}</span>}
+                  {output.review && (
+                    <span>· {output.review.decision === 'approved' ? 'approved' : 'changes requested'} by {output.review.by}</span>
+                  )}
                 </h3>
-                {previousOutput && !editing && (
-                  <Button variant="outline" size="xs" onClick={() => setShowChanges((value) => !value)}>
-                    {showChanges ? 'Show document' : 'Show changes'}
-                  </Button>
+                {!editing && (
+                  <div className="flex items-center gap-2">
+                    {previousOutput && (
+                      <Button variant="outline" size="xs" onClick={() => setShowChanges((value) => !value)}>
+                        {showChanges ? 'Show document' : 'Show changes'}
+                      </Button>
+                    )}
+                    {isCurrent && (
+                      <Button variant="outline" size="xs" onClick={startEditing} disabled={!canValidate || approving}>
+                        <Pencil data-icon="inline-start" />
+                        Edit
+                      </Button>
+                    )}
+                  </div>
                 )}
               </div>
 
@@ -183,29 +203,11 @@ export function StoryDetail({ story, role, approving = false, ...actions }: Stor
         )}
       </div>
 
-      {output && (
-        <footer className="border-t bg-background py-5">
-          <ReviewBar
-            key={stageTab}
-            storyKey={story.key}
-            stageLabel={stage.label}
-            approving={approving}
-            output={output}
-            isCurrent={isCurrent}
-            canValidate={canValidate}
-            approvers={stage.approvers}
-            isPlan={tab === 'plan'}
-            editing={editing}
-            onApprove={() => actions.onApprove(story.id)}
-            onEdit={startEditing}
-          />
-        </footer>
-      )}
-
       {output && isCurrent && (
         // Pinned to the bottom of the page scroller, like a chat composer.
-        // -mb-10 cancels the layout's bottom padding so the bar sits flush.
-        <div className="sticky bottom-0 z-10 -mb-10 bg-linear-to-t from-background from-75% to-transparent pt-6 pb-6">
+        // Sticky offsets start inside the scroller's pb-10, so -bottom-10 and
+        // -mb-10 cancel that padding and let the bar sit flush with the edge.
+        <div className="sticky -bottom-10 z-10 -mb-10 bg-linear-to-t from-background from-75% to-transparent pt-6 pb-3">
           <ChatInput
             inputRef={chatInputRef}
             agent={stage.agent}
@@ -265,47 +267,44 @@ function AgentWorking({ agent, isCurrent }: { agent: string; isCurrent: boolean 
   )
 }
 
-type ReviewBarProps = {
-  storyKey: string
-  stageLabel: string
+type StoryReviewProps = {
+  story: UserStory
+  role: Role
   approving: boolean
-  output: StageOutput
-  isCurrent: boolean
-  canValidate: boolean
-  approvers: Role[]
-  isPlan: boolean
   editing: boolean
   onApprove: () => void
-  onEdit: () => void
 }
 
-function ReviewBar({ storyKey, stageLabel, approving, output, isCurrent, canValidate, approvers, isPlan, editing, onApprove, onEdit }: ReviewBarProps) {
+// Approval for the story's current stage, shown in the page sidebar so it stays visible while reading.
+export function StoryReview({ story, role, approving, editing, onApprove }: StoryReviewProps) {
+  const stage = stageForColumn(story.column)
+  const output = stage && story.stages[stage.id]
+  if (!stage || !output) return null
+  const canValidate = stage.approvers.includes(role)
   const review = output.review
 
-  if (!isCurrent) {
-    return (
-      <p className="text-xs text-muted-foreground">
-        {review ? `${review.decision === 'approved' ? 'Approved' : 'Changes requested'} by ${review.by}` : 'Not validated'}
-      </p>
-    )
-  }
-
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <p className="mr-auto text-xs text-muted-foreground">
-        {review?.decision === 'rejected' ? (
+    <div className="space-y-2">
+      <ApproveStoryDialog
+        storyKey={story.key}
+        stageLabel={stage.label}
+        isPlan={stage.id === 'plan'}
+        disabled={!canValidate || editing}
+        pending={approving}
+        onApprove={onApprove}
+        className="w-full"
+      />
+      <p className="text-xs text-muted-foreground">
+        {editing ? (
+          'Save or cancel your edits before approving.'
+        ) : review?.decision === 'rejected' ? (
           <span className="text-amber-700 dark:text-amber-400">Changes requested by {review.by}: update the document or ask the agent.</span>
         ) : canValidate ? (
-          `Validation by ${approvers.join(' or ')}`
+          `Validation by ${stage.approvers.join(' or ')}`
         ) : (
-          `Only ${approvers.join(' or ')} can validate this step.`
+          `Only ${stage.approvers.join(' or ')} can validate this step.`
         )}
       </p>
-      <Button variant="outline" size="sm" onClick={onEdit} disabled={!canValidate || editing || approving}>
-        <Pencil data-icon="inline-start" />
-        Edit
-      </Button>
-      <ApproveStoryDialog storyKey={storyKey} stageLabel={stageLabel} isPlan={isPlan} disabled={!canValidate || editing} pending={approving} onApprove={onApprove} />
     </div>
   )
 }

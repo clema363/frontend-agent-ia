@@ -10,9 +10,10 @@ type ApproveStoryDialogProps = {
   disabled: boolean
   pending: boolean
   onApprove: () => void
+  className?: string
 }
 
-export function ApproveStoryDialog({ storyKey, stageLabel, isPlan, disabled, pending, onApprove }: ApproveStoryDialogProps) {
+export function ApproveStoryDialog({ storyKey, stageLabel, isPlan, disabled, pending, onApprove, className }: ApproveStoryDialogProps) {
   const [open, setOpen] = useState(false)
   const cancelRef = useRef<HTMLButtonElement>(null)
   const confirming = useRef(false)
@@ -30,7 +31,7 @@ export function ApproveStoryDialog({ storyKey, stageLabel, isPlan, disabled, pen
       if (value) confirming.current = false
       setOpen(value)
     }}>
-      <DialogTrigger render={<Button size="sm" disabled={disabled || pending} />}>
+      <DialogTrigger render={<Button size="sm" className={className} disabled={disabled || pending} />}>
         {pending ? <Loader className="animate-spin" aria-hidden="true" /> : isPlan ? <Send aria-hidden="true" /> : <ThumbsUp aria-hidden="true" />}
         {pending ? 'Approving…' : label}
       </DialogTrigger>

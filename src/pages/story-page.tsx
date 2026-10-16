@@ -5,7 +5,7 @@ import { atlasApi, toApiError } from '@/api/rtk-api'
 import { ArrowLeft, FolderOpen, SquareKanban, Tag, User } from 'lucide-react'
 import { useFieldConfig, useMe, useProjects, useStories, useStoryMutations } from '@/api/hooks'
 import { ColumnIcon, IssueTypeIcon, PriorityIcon } from '@/components/kanban/issue-meta'
-import { StoryDetail, type StoryActions } from '@/components/kanban/story-detail'
+import { StoryDetail, StoryReview, type StoryActions } from '@/components/kanban/story-detail'
 import { PageHeader } from '@/components/layout/page-header'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -19,6 +19,7 @@ export function StoryPage() {
   const mutations = useStoryMutations()
   const dispatch = useAppDispatch()
   const [error, setError] = useState<string>()
+  const [editing, setEditing] = useState(false)
   const story = stories.find((item) => item.id === storyId)
   const role = me?.role ?? 'PO'
   const savedReturn = location.state?.returnTo
@@ -69,9 +70,27 @@ export function StoryPage() {
       ) : (
         <div className="mx-auto grid max-w-7xl items-start gap-10 py-4 lg:grid-cols-[minmax(0,1fr)_260px] lg:gap-16 lg:px-6 lg:py-10 xl:gap-24">
           <section className="min-w-0">
-            <StoryDetail key={`${story.id}-${story.column}`} story={story} role={role} approving={mutations.decide.isLoading} {...actions} />
+            <StoryDetail
+              key={`${story.id}-${story.column}`}
+              story={story}
+              role={role}
+              approving={mutations.decide.isLoading}
+              onEditingChange={setEditing}
+              {...actions}
+            />
           </section>
-          <JiraProperties story={story} />
+          <JiraProperties
+            story={story}
+            review={
+              <StoryReview
+                story={story}
+                role={role}
+                approving={mutations.decide.isLoading}
+                editing={editing}
+                onApprove={() => actions.onApprove(story.id)}
+              />
+            }
+          />
         </div>
       )}
     </>
@@ -102,7 +121,7 @@ function Property({ label, icon, children }: { label: string; icon?: ReactNode; 
   )
 }
 
-function JiraProperties({ story }: { story: UserStory }) {
+function JiraProperties({ story, review }: { story: UserStory; review: ReactNode }) {
   const { data: projects = [] } = useProjects()
   const { data: config } = useFieldConfig(story.projectId, true)
   const project = projects.find((item) => item.id === story.projectId)
@@ -117,6 +136,11 @@ function JiraProperties({ story }: { story: UserStory }) {
 
   return (
     <aside aria-label="Issue properties" className="space-y-8 border-t pt-6 lg:sticky lg:top-6 lg:border-t-0 lg:pt-2">
+      <section className="space-y-4 border-b pb-6">
+        <h2 className="text-sm font-medium text-muted-foreground">Agent workflow</h2>
+        <dl><Property label="Current step" icon={<ColumnIcon column={story.column} />}>{kanbanColumns.find((column) => column.id === story.column)?.title}</Property></dl>
+        {review}
+      </section>
       <section className="space-y-5">
         <h2 className="text-sm font-medium text-muted-foreground">Jira properties</h2>
         <dl className="space-y-5">
@@ -147,10 +171,6 @@ function JiraProperties({ story }: { story: UserStory }) {
           </dl>
         </section>
       )}
-      <section className="space-y-4 border-t pt-6">
-        <h2 className="text-sm font-medium text-muted-foreground">Agent workflow</h2>
-        <dl><Property label="Current step" icon={<ColumnIcon column={story.column} />}>{kanbanColumns.find((column) => column.id === story.column)?.title}</Property></dl>
-      </section>
     </aside>
   )
 }
