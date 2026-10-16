@@ -33,7 +33,7 @@ export function DashboardPage() {
           <Kpi icon={Inbox} label="To review by you" value={toReview.length} hint={`as ${role}`} to="/kanban" accent />
           <Kpi icon={CircleX} label="Changes requested" value={count('changes-requested')} hint="reworked by the agents" to="/kanban" />
           <Kpi icon={Bot} label="Agents working" value={count('agent-working')} hint="document in progress" to="/kanban" />
-          <Kpi icon={Send} label="Sent to AI" value={count('sent-to-ai')} hint="ready for development" to="/kanban" />
+          <Kpi icon={Send} label="With OpenCode" value={count('sent-to-ai')} hint="coding or fixing" to="/kanban" />
         </dl>
 
         <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">

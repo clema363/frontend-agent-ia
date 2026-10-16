@@ -25,7 +25,7 @@ async function execute<T>(request: () => Promise<T>): Promise<{ data: T } | { er
   }
 }
 
-const cacheTags = ['Me', 'Health', 'Stories', 'Journal', 'Stats', 'Projects', 'Members', 'Context', 'FieldConfig', 'Users', 'Settings', 'Connections', 'JiraProjects', 'ConfluenceSpaces', 'GitlabProjects'] as const
+const cacheTags = ['Me', 'Health', 'Stories', 'Journal', 'Stats', 'Projects', 'Members', 'Context', 'FieldConfig', 'Users', 'Settings', 'Connections', 'JiraProjects', 'ConfluenceSpaces', 'GitlabProjects', 'Opencode'] as const
 
 // Reuse the HTTP client for JWT handling, snake_case conversion and the demo backend.
 export const atlasApi = createApi({
@@ -52,6 +52,10 @@ export const atlasApi = createApi({
     getJournal: build.query<Awaited<ReturnType<typeof api.us.journal>>, string | undefined>({
       queryFn: (arg) => execute(() => api.us.journal(arg)),
       providesTags: ['Journal'],
+    }),
+    getOpencodeMessages: build.query<Awaited<ReturnType<typeof api.us.opencodeMessages>>, string>({
+      queryFn: (arg) => execute(() => api.us.opencodeMessages(arg)),
+      providesTags: (_result, _error, arg) => [{ type: 'Opencode', id: arg }],
     }),
     getStats: build.query<Awaited<ReturnType<typeof api.us.stats>>, void>({
       queryFn: () => execute(() => api.us.stats()),
@@ -116,6 +120,14 @@ export const atlasApi = createApi({
     sendMessage: build.mutation<Awaited<ReturnType<typeof api.us.sendMessage>>, { id: string; message: string }>({
       queryFn: (arg) => execute(() => api.us.sendMessage(arg.id, arg.message)),
       invalidatesTags: ['Stories', 'Journal'],
+    }),
+    sendOpencodeMessage: build.mutation<void, { id: string; text: string }>({
+      queryFn: (arg) => execute(() => api.us.sendOpencodeMessage(arg.id, arg.text)),
+      invalidatesTags: (_result, _error, { id }) => [{ type: 'Opencode', id }],
+    }),
+    abortOpencode: build.mutation<void, string>({
+      queryFn: (arg) => execute(() => api.us.abortOpencode(arg)),
+      invalidatesTags: (_result, _error, id) => [{ type: 'Opencode', id }, 'Stories'],
     }),
     createProject: build.mutation<Awaited<ReturnType<typeof api.projects.create>>, Parameters<typeof api.projects.create>[0]>({
       queryFn: (arg) => execute(() => api.projects.create(arg)),

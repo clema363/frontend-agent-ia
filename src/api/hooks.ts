@@ -1,4 +1,4 @@
-import type { NewConnection, SourceTool, UserStory } from '@/lib/domain'
+import type { NewConnection, OpencodeMessage, SourceTool, UserStory } from '@/lib/domain'
 import { useAppSelector } from '@/lib/store'
 import { stageForColumn } from '@/lib/story-workflow'
 import { api } from './endpoints'
@@ -24,6 +24,26 @@ const agentIsWorking = (story: UserStory) => {
 export function useStories() {
   const working = useAppSelector((state) => selectStories(state).data?.some(agentIsWorking) ?? false)
   return atlasApi.useGetStoriesQuery(undefined, { pollingInterval: working ? 2000 : 0 })
+}
+
+// OpenCode is working while its last assistant message has no completed time.
+export const opencodeIsBusy = (messages: OpencodeMessage[] = []) => {
+  const last = messages.at(-1)?.info
+  return Boolean(last && (last.role === 'user' || !last.time.completed))
+}
+
+// Polls while OpenCode streams its answer; the backend could relay the /event SSE stream instead.
+export function useOpencodeMessages(storyId: string, enabled: boolean) {
+  const busy = useAppSelector((state) => opencodeIsBusy(atlasApi.endpoints.getOpencodeMessages.select(storyId)(state).data))
+  const result = atlasApi.useGetOpencodeMessagesQuery(storyId, { skip: !enabled, pollingInterval: busy ? 500 : 0 })
+  return { ...result, busy }
+}
+
+export function useOpencodeMutations() {
+  return {
+    send: mutation(atlasApi.useSendOpencodeMessageMutation()),
+    abort: mutation(atlasApi.useAbortOpencodeMutation()),
+  }
 }
 
 export const useJournal = (usId?: string) => atlasApi.useGetJournalQuery(usId)

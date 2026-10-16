@@ -8,7 +8,7 @@ import {
   MessageSquareText,
   Pencil,
 } from 'lucide-react'
-import { AgentAvatar, CodingAgentPanel } from '@/components/kanban/coding-agent'
+import { OpencodeSession } from '@/components/kanban/opencode-session'
 import { ApproveStoryDialog } from '@/components/kanban/approve-story-dialog'
 import { IssueTypeIcon, PriorityIcon } from '@/components/kanban/issue-meta'
 import { Markdown } from '@/components/markdown'
@@ -19,12 +19,19 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { diffLines } from '@/lib/diff'
 import { useJournal, useSettings } from '@/api/hooks'
-import { stages, type Role, type StageId, type StageOutput, type UserStory } from '@/lib/domain'
+import { kanbanColumns, opencodeSteps, stages, type KanbanColumnId, type OpencodeStepId, type Role, type StageId, type StageOutput, type UserStory } from '@/lib/domain'
 import { stageForColumn } from '@/lib/story-workflow'
 import { cn, timeAgo } from '@/lib/utils'
 
-// One tab per stage, plus the coding agent tab once the plan has been sent.
-type Tab = StageId | 'agent'
+// One tab per step: the document stages, then the OpenCode steps (plan, coding).
+type Tab = StageId | OpencodeStepId
+
+const columnIndex = (column: KanbanColumnId) => kanbanColumns.findIndex((item) => item.id === column)
+
+const opencodeEmptyText: Record<OpencodeStepId, string> = {
+  plan: 'OpenCode is preparing the plan…',
+  coding: 'OpenCode starts coding once the plan is approved.',
+}
 
 export type StoryActions = {
   // decide and messages always target the story's current stage.
@@ -46,17 +53,18 @@ type StoryDetailProps = StoryActions & {
 export function StoryDetail({ story, role, approving = false, onEditingChange, ...actions }: StoryDetailProps) {
   const currentStage = stageForColumn(story.column)
   const jiraUrl = useSettings().data?.jiraUrl
-  const sentToAi = story.column === 'sent-to-ai'
-  const [tab, setTab] = useState<Tab>(sentToAi ? 'agent' : (currentStage?.id ?? 'plan'))
-  const stageTab: StageId = tab === 'agent' ? 'plan' : tab
+  const currentTab: Tab = currentStage?.id ?? opencodeSteps.find((item) => item.column === story.column)?.id ?? 'plan'
+  const [tab, setTab] = useState<Tab>(currentTab)
+  const opencodeStep = opencodeSteps.find((item) => item.id === tab)
+  const stageTab: StageId = tab === 'coding' ? 'plan' : tab
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState('')
   const [showChanges, setShowChanges] = useState(false)
   const chatInputRef = useRef<HTMLTextAreaElement>(null)
 
   const stage = stages.find((item) => item.id === stageTab) ?? stages[0]
-  const output = tab === 'agent' ? undefined : story.stages[stageTab]
-  const isCurrent = currentStage?.id === tab
+  const output = opencodeStep ? undefined : story.stages[stageTab]
+  const isCurrent = currentTab === tab
   const canValidate = stage.approvers.includes(role)
   const previousOutput = tab === 'refinement' ? story.stages.authoring : undefined
 
@@ -112,96 +120,100 @@ export function StoryDetail({ story, role, approving = false, onEditingChange, .
                 {item.label}
               </TabsTrigger>
             ))}
-            {sentToAi && (
-              <TabsTrigger value="agent">
-                <AgentAvatar className="size-4 [&_svg]:size-2.5" />
-                Coding agent
+            {opencodeSteps.slice(1).map((item) => (
+              <TabsTrigger key={item.id} value={item.id}>
+                <StepStatusIcon story={story} column={item.column} />
+                {item.label}
               </TabsTrigger>
-            )}
+            ))}
           </TabsList>
         </Tabs>
       </div>
 
-      <div className="min-h-0 flex-1 space-y-6 pb-8">
-        {tab === 'authoring' && <RawInput story={story} />}
+      {opencodeStep && columnIndex(story.column) >= columnIndex(opencodeStep.column) ? (
+        <OpencodeSession story={story} step={opencodeStep.id} isCurrent={isCurrent} emptyText={opencodeEmptyText[opencodeStep.id]} />
+      ) : (
+        <div className="min-h-0 flex-1 space-y-6 pb-8">
+          {tab === 'authoring' && <RawInput story={story} />}
 
-        {tab === 'agent' ? (
-          <CodingAgentPanel run={story.codingAgent} />
-        ) : !output ? (
-          <AgentWorking agent={stage.agent} isCurrent={isCurrent} />
-        ) : (
-          <>
-            <section className="space-y-2">
-              <div className="flex items-center justify-between gap-2">
-                <h3 className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                  <Bot className="size-3.5" aria-hidden="true" />
-                  {stage.agent}
-                  {output.editedBy && <span>· edited by {output.editedBy}</span>}
-                  {output.review && (
-                    <span>· {output.review.decision === 'approved' ? 'approved' : 'changes requested'} by {output.review.by}</span>
+          {opencodeStep ? (
+            <AgentWorking agent="OpenCode" isCurrent={false} />
+          ) : !output ? (
+            <AgentWorking agent={stage.agent} isCurrent={isCurrent} />
+          ) : (
+            <>
+              <section className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                    <Bot className="size-3.5" aria-hidden="true" />
+                    {stage.agent}
+                    {output.editedBy && <span>· edited by {output.editedBy}</span>}
+                    {output.review && (
+                      <span>· {output.review.decision === 'approved' ? 'approved' : 'changes requested'} by {output.review.by}</span>
+                    )}
+                  </h3>
+                  {!editing && (
+                    <div className="flex items-center gap-2">
+                      {previousOutput && (
+                        <Button variant="outline" size="xs" onClick={() => setShowChanges((value) => !value)}>
+                          {showChanges ? 'Show document' : 'Show changes'}
+                        </Button>
+                      )}
+                      {isCurrent && (
+                        <Button variant="outline" size="xs" onClick={startEditing} disabled={!canValidate || approving}>
+                          <Pencil data-icon="inline-start" />
+                          Edit
+                        </Button>
+                      )}
+                    </div>
                   )}
-                </h3>
-                {!editing && (
-                  <div className="flex items-center gap-2">
-                    {previousOutput && (
-                      <Button variant="outline" size="xs" onClick={() => setShowChanges((value) => !value)}>
-                        {showChanges ? 'Show document' : 'Show changes'}
+                </div>
+
+                {editing ? (
+                  <div className="space-y-2">
+                    <Textarea
+                      value={draft}
+                      onChange={(event) => setDraft(event.target.value)}
+                      className="min-h-80 font-mono text-xs"
+                      aria-label="Document in Markdown"
+                    />
+                    <div className="flex justify-end gap-2">
+                      <Button variant="ghost" size="sm" onClick={() => setEditing(false)}>
+                        Cancel
                       </Button>
-                    )}
-                    {isCurrent && (
-                      <Button variant="outline" size="xs" onClick={startEditing} disabled={!canValidate || approving}>
-                        <Pencil data-icon="inline-start" />
-                        Edit
+                      <Button size="sm" onClick={saveEdit}>
+                        Save
                       </Button>
-                    )}
+                    </div>
+                  </div>
+                ) : showChanges && previousOutput ? (
+                  <StoryDiff before={previousOutput.markdown} after={output.markdown} />
+                ) : (
+                  <div className="py-4">
+                    <Markdown>{output.markdown}</Markdown>
                   </div>
                 )}
-              </div>
-
-              {editing ? (
-                <div className="space-y-2">
-                  <Textarea
-                    value={draft}
-                    onChange={(event) => setDraft(event.target.value)}
-                    className="min-h-80 font-mono text-xs"
-                    aria-label="Document in Markdown"
-                  />
-                  <div className="flex justify-end gap-2">
-                    <Button variant="ghost" size="sm" onClick={() => setEditing(false)}>
-                      Cancel
-                    </Button>
-                    <Button size="sm" onClick={saveEdit}>
-                      Save
-                    </Button>
-                  </div>
-                </div>
-              ) : showChanges && previousOutput ? (
-                <StoryDiff before={previousOutput.markdown} after={output.markdown} />
-              ) : (
-                <div className="py-4">
-                  <Markdown>{output.markdown}</Markdown>
-                </div>
-              )}
-            </section>
-
-            {output.sources.length > 0 && (
-              <section className="flex items-start gap-2 text-xs text-muted-foreground">
-                <span className="pt-0.5">Sources</span>
-                <SourceList sources={output.sources} />
               </section>
-            )}
 
-            <Comments
-              story={story}
-              stageId={stageTab}
-              canComment={isCurrent && !editing}
-              onComment={(text) => actions.onComment(story.id, text)}
-            />
+              {output.sources.length > 0 && (
+                <section className="flex items-start gap-2 text-xs text-muted-foreground">
+                  <span className="pt-0.5">Sources</span>
+                  <SourceList sources={output.sources} />
+                </section>
+              )}
 
-            {output.chat.length > 0 && <ChatThread output={output} />}
-          </>
-        )}
-      </div>
+              <Comments
+                story={story}
+                stageId={stageTab}
+                canComment={isCurrent && !editing}
+                onComment={(text) => actions.onComment(story.id, text)}
+              />
+
+              {output.chat.length > 0 && <ChatThread output={output} />}
+            </>
+          )}
+        </div>
+      )}
 
       {output && isCurrent && (
         // Pinned to the bottom of the page scroller, like a chat composer.
@@ -229,6 +241,14 @@ function StageStatusIcon({ output, isCurrent }: { output?: StageOutput; isCurren
   if (isCurrent) {
     return <span className="size-2 rounded-full bg-primary" aria-label="Current step" />
   }
+  return null
+}
+
+// Steps after the plan have no document: done once the story has moved past them.
+function StepStatusIcon({ story, column }: { story: UserStory; column: KanbanColumnId }) {
+  const index = columnIndex(story.column)
+  if (index > columnIndex(column)) return <CircleCheck className="text-green-600 dark:text-green-400" aria-label="Done" />
+  if (index === columnIndex(column)) return <span className="size-2 rounded-full bg-primary" aria-label="Current step" />
   return null
 }
 

@@ -17,6 +17,7 @@ import type {
   Me,
   NewConnection,
   NewStoryRequest,
+  OpencodeMessage,
   Project,
   ProjectMember,
   ProjectSources,
@@ -62,6 +63,11 @@ export const api = {
     saveFields: (id: string, fields: Record<string, unknown>) => request<UserStory>('PUT', `/us/${id}/fields`, { fields }),
     pushToJira: (id: string, body: { dryRun?: boolean; attachArtifact?: boolean } = {}) =>
       request<{ dryRun: boolean; jiraKey: string | null }>('POST', `/us/${id}/jira/push`, body),
+    // The backend proxies the story's OpenCode session (GET /session/{id}/message,
+    // POST /session/{id}/prompt_async and POST /session/{id}/abort).
+    opencodeMessages: (id: string) => request<OpencodeMessage[]>('GET', `/us/${id}/opencode/messages`),
+    sendOpencodeMessage: (id: string, text: string) => request<void>('POST', `/us/${id}/opencode/messages`, { text }),
+    abortOpencode: (id: string) => request<void>('POST', `/us/${id}/opencode/abort`),
   },
 
   projects: {

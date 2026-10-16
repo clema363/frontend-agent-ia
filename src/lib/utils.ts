@@ -20,3 +20,11 @@ export function timeAgo(iso: string) {
   }
   return 'just now'
 }
+
+// Closest scrolling ancestor: the page scroller of the app layout.
+export function scrollParent(element: HTMLElement): HTMLElement {
+  for (let node = element.parentElement; node; node = node.parentElement) {
+    if (/(auto|scroll)/.test(getComputedStyle(node).overflowY)) return node
+  }
+  return document.scrollingElement as HTMLElement
+}

@@ -26,7 +26,7 @@ export type ProjectSources = {
   gitlabProjectPath?: string | null
 }
 
-export type KanbanColumnId = 'to-author' | 'to-refine' | 'to-specify' | 'review-for-dev' | 'sent-to-ai'
+export type KanbanColumnId = 'to-author' | 'to-refine' | 'to-specify' | 'review-for-dev' | 'coding'
 
 export type StageId = 'authoring' | 'refinement' | 'specification' | 'plan'
 
@@ -64,14 +64,57 @@ export type StageOutput = {
 
 export type CodingAgentStatus = 'queued' | 'working' | 'needs-input' | 'pr-opened' | 'merged' | 'failed'
 
-// Activity published by the coding agent during its session, similar to Linear agent activities.
-export type CodingAgentActivity = {
-  id: string
-  at: string
-  kind: 'thought' | 'action' | 'question' | 'response' | 'error'
-  text: string
-  file?: string
+// OpenCode steps share one session per story: the plan agent writes the plan,
+// then the build agent codes it, opens the merge request and fixes its pipeline.
+export type OpencodeStepId = 'plan' | 'coding'
+
+export type StoryOpencodeSession = {
+  sessionId: string
+  // First message of each step, in session order.
+  steps: Partial<Record<OpencodeStepId, string>>
 }
+
+// OpenCode message parts, as returned by GET /session/{id}/message (proxied by the backend).
+export type OpencodeToolState = {
+  status: 'pending' | 'running' | 'completed' | 'error'
+  input: Record<string, unknown>
+  output?: string
+  error?: string
+  title?: string
+  metadata?: Record<string, unknown>
+  time?: { start: number; end?: number }
+}
+
+type OpencodePartBase = { id: string; sessionID: string; messageID: string }
+
+export type OpencodePart = OpencodePartBase &
+  (
+    | { type: 'text'; text: string; synthetic?: boolean; time?: { start: number; end?: number } }
+    | { type: 'reasoning'; text: string; time: { start: number; end?: number } }
+    | { type: 'tool'; callID: string; tool: string; state: OpencodeToolState }
+    | { type: 'file'; mime: string; filename?: string; url: string }
+    | { type: 'patch'; hash: string; files: string[] }
+    | { type: 'step-start' }
+    | { type: 'step-finish'; reason?: string; cost: number; tokens: OpencodeTokens }
+  )
+
+export type OpencodeTokens = { input: number; output: number; reasoning: number; cache: { read: number; write: number } }
+
+export type OpencodeMessageInfo = {
+  id: string
+  sessionID: string
+  role: 'user' | 'assistant'
+  // Assistant messages stay open (no completed time) while OpenCode is working.
+  time: { created: number; completed?: number }
+  agent?: string
+  modelID?: string
+  providerID?: string
+  cost?: number
+  tokens?: OpencodeTokens
+  error?: { name: string; data?: { message?: string } }
+}
+
+export type OpencodeMessage = { info: OpencodeMessageInfo; parts: OpencodePart[] }
 
 export type CodingAgentRun = {
   agent: string
@@ -85,7 +128,6 @@ export type CodingAgentRun = {
     deletions: number
     ci: 'pending' | 'passed' | 'failed'
   }
-  activities: CodingAgentActivity[]
   inputTokens?: number
   outputTokens?: number
   durationMs?: number
@@ -107,8 +149,10 @@ export type UserStory = {
   stages: Partial<Record<StageId, StageOutput>>
   // Jira field values entered on the story (PUT /us/{us_id}/fields).
   fields?: Record<string, unknown>
-  // Coding agent session after the plan has been approved and sent.
+  // Merge request and pipeline status once OpenCode starts coding.
   codingAgent?: CodingAgentRun
+  // OpenCode session that writes the plan, codes it and fixes the pipeline.
+  opencode?: StoryOpencodeSession
   myRoles?: Role[]
 }
 
@@ -278,8 +322,8 @@ export const kanbanColumns: {
   { id: 'to-author', title: 'To author', agent: 'Authoring agent', color: 'oklch(0.62 0.01 260)' },
   { id: 'to-refine', title: 'To refine', agent: 'Refinement agent', color: 'oklch(0.75 0.16 70)' },
   { id: 'to-specify', title: 'To specify', agent: 'Spec agent', color: 'var(--primary)' },
-  { id: 'review-for-dev', title: 'Review for dev', agent: 'Review agent', color: 'oklch(0.58 0.2 293)' },
-  { id: 'sent-to-ai', title: 'Sent to AI', agent: 'Coding agent', color: 'oklch(0.63 0.16 150)' },
+  { id: 'review-for-dev', title: 'Plan', agent: 'OpenCode', color: 'oklch(0.58 0.2 293)' },
+  { id: 'coding', title: 'Coding', agent: 'OpenCode', color: 'oklch(0.63 0.16 150)' },
 ]
 
 // Workflow stages: associated column, agent and roles allowed to approve the document.
@@ -293,7 +337,13 @@ export const stages: {
   { id: 'authoring', label: 'Creation', column: 'to-author', agent: 'Authoring agent', approvers: ['PO', 'BA'] },
   { id: 'refinement', label: 'Refinement', column: 'to-refine', agent: 'Refinement agent', approvers: ['PO', 'BA'] },
   { id: 'specification', label: 'Spec', column: 'to-specify', agent: 'Spec agent', approvers: ['Architect', 'DEV'] },
-  { id: 'plan', label: 'Plan', column: 'review-for-dev', agent: 'Review agent', approvers: ['DEV'] },
+  { id: 'plan', label: 'Plan', column: 'review-for-dev', agent: 'OpenCode', approvers: ['DEV'] },
+]
+
+// Steps run by OpenCode after the spec; plan is also the last approval stage.
+export const opencodeSteps: { id: OpencodeStepId; label: string; column: KanbanColumnId; agent: string }[] = [
+  { id: 'plan', label: 'Plan', column: 'review-for-dev', agent: 'plan' },
+  { id: 'coding', label: 'Coding', column: 'coding', agent: 'build' },
 ]
 
 // Cockpit priority levels to map to Jira project priorities.

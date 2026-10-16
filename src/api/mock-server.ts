@@ -2,9 +2,10 @@
 // and keep changes in memory so the UI responds. Business rules
 // such as permissions, duplicates and approvals belong to the real backend.
 // Reloading the page resets the data.
-import type { AppUser, Connection, ContextMap, FieldConfig, JournalEntry, Me, Project, ProjectMember, Settings, SourceTool, UserStory } from '@/lib/domain'
+import type { AppUser, Connection, ContextMap, FieldConfig, JournalEntry, Me, OpencodeMessage, Project, ProjectMember, Settings, SourceTool, UserStory } from '@/lib/domain'
 import { nextColumn, stageForColumn } from '@/lib/story-workflow'
 import { ApiError, toCamel, toSnake, type Method } from './client'
+import { abortOpencode, codingScript, planScript, replyScript, runOpencode } from './mock-opencode'
 import confluencePages from './fixtures/confluence-pages.json'
 import confluenceSpaces from './fixtures/confluence-spaces.json'
 import connections from './fixtures/connections.json'
@@ -18,6 +19,7 @@ import jiraProjects from './fixtures/jira-projects.json'
 import jiraSuggestions from './fixtures/jira-suggestions.json'
 import journal from './fixtures/journal.json'
 import me from './fixtures/me.json'
+import opencodeMessages from './fixtures/opencode-messages.json'
 import projectMembers from './fixtures/project-members.json'
 import projects from './fixtures/projects.json'
 import settings from './fixtures/settings.json'
@@ -28,7 +30,8 @@ import users from './fixtures/users.json'
 const LATENCY = 250
 
 // Working copy of the fixtures, in camelCase for the handlers.
-const db = toCamel(structuredClone({ us, journal, projects, projectMembers, users, me, context, fieldConfig, settings, connections })) as {
+// OpenCode messages are already camelCase (sessionID, filePath…) and keyed by story id.
+const db = toCamel(structuredClone({ us, journal, projects, projectMembers, users, me, context, fieldConfig, settings, connections, opencode: opencodeMessages })) as {
   us: UserStory[]
   journal: JournalEntry[]
   projects: Project[]
@@ -39,6 +42,7 @@ const db = toCamel(structuredClone({ us, journal, projects, projectMembers, user
   fieldConfig: Record<string, FieldConfig>
   settings: Settings
   connections: (Connection & { tool: SourceTool })[]
+  opencode: Record<string, OpencodeMessage[]>
 }
 
 type Handler = (params: Record<string, string>, body: any) => unknown
@@ -64,11 +68,45 @@ function log(item: UserStory, action: string, detail?: string) {
 }
 
 // Stand in for the agent: generate the current stage document immediately.
+// OpenCode writes the plan in its session, so that document arrives once the answer has streamed.
 function fillCurrentStage(item: UserStory) {
   const stage = stageForColumn(item.column)
   if (!stage || item.stages[stage.id]) return
-  item.stages[stage.id] = { markdown: `## ${item.title}\n\n_Mock document (${stage.agent})._\n\n${item.raw}`, sources: [], chat: [] }
+  const markdown = `## ${item.title}\n\n_Mock document (${stage.agent})._\n\n${item.raw}`
+  if (stage.id !== 'plan') {
+    item.stages[stage.id] = { markdown, sources: [], chat: [] }
+    return
+  }
+  const plan = `## Implementation plan\n\n1. **Apply the spec to ${item.title.toLowerCase()}**\n   \`src/api/journal.ts\`\n2. **Cover it with tests**\n   \`tests/journal.test.ts\``
+  runOpencode(item, opencodeOf(item.id), {
+    text: `Prepare an implementation plan for **${item.key} · ${item.title}**.\n\nUse the approved spec. Read the code you need, but do not change any file.`,
+    agent: 'plan',
+    step: 'plan',
+    script: planScript(item, plan),
+    onDone: () => (item.stages.plan = { markdown: plan, sources: [], chat: [] }),
+  })
 }
+
+// Approving the plan hands the session to the build agent; the merge request opens when it is done.
+function startCoding(item: UserStory) {
+  const branch = `feat/${item.key.toLowerCase()}`
+  item.codingAgent = { agent: 'OpenCode', status: 'working', startedAt: new Date().toISOString(), branch }
+  runOpencode(item, opencodeOf(item.id), {
+    text: `The plan was approved. Implement it on branch \`${branch}\`, run the tests, then open a merge request.`,
+    agent: 'build',
+    step: 'coding',
+    script: codingScript(branch),
+    onDone: () => {
+      item.codingAgent = {
+        ...item.codingAgent!,
+        status: 'pr-opened',
+        pullRequest: { number: 43, url: 'https://gitlab.example.com/merge_requests/43', additions: 24, deletions: 3, ci: 'pending' },
+      }
+    },
+  })
+}
+
+const opencodeOf = (storyId: string) => (db.opencode[storyId] ??= [])
 
 function currentOutput(item: UserStory) {
   const stage = stageForColumn(item.column)
@@ -135,9 +173,7 @@ const routes: Record<string, Handler> = {
     if (body.decision === 'approve') {
       item.column = nextColumn(item.column)
       fillCurrentStage(item)
-      if (item.column === 'sent-to-ai') {
-        item.codingAgent = { agent: 'Claude Code', status: 'queued', startedAt: new Date().toISOString(), activities: [] }
-      }
+      if (item.column === 'coding') startCoding(item)
     }
     return item
   },
@@ -150,6 +186,12 @@ const routes: Record<string, Handler> = {
     )
     return item
   },
+  'GET /us/{us_id}/opencode/messages': ({ us_id }) => opencodeOf(story(us_id).id),
+  'POST /us/{us_id}/opencode/messages': ({ us_id }, body: { text: string }) => {
+    const item = story(us_id)
+    runOpencode(item, opencodeOf(item.id), { text: body.text, agent: item.column === 'review-for-dev' ? 'plan' : 'build', script: replyScript(body.text) })
+  },
+  'POST /us/{us_id}/opencode/abort': ({ us_id }) => abortOpencode(story(us_id), opencodeOf(us_id)),
   'POST /us/{us_id}/finalize': ({ us_id }) => story(us_id),
   'PUT /us/{us_id}/fields': ({ us_id }, body: { fields: Record<string, unknown> }) => Object.assign(story(us_id), { fields: body.fields }),
   'POST /us/{us_id}/jira/push': ({ us_id }, body: { dryRun?: boolean }) => ({

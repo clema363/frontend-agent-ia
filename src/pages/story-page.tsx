@@ -4,6 +4,7 @@ import { useAppDispatch } from '@/lib/store'
 import { atlasApi, toApiError } from '@/api/rtk-api'
 import { ArrowLeft, FolderOpen, SquareKanban, Tag, User } from 'lucide-react'
 import { useFieldConfig, useMe, useProjects, useStories, useStoryMutations } from '@/api/hooks'
+import { MergeRequest } from '@/components/kanban/coding-agent'
 import { ColumnIcon, IssueTypeIcon, PriorityIcon } from '@/components/kanban/issue-meta'
 import { StoryDetail, StoryReview, type StoryActions } from '@/components/kanban/story-detail'
 import { PageHeader } from '@/components/layout/page-header'
@@ -140,6 +141,7 @@ function JiraProperties({ story, review }: { story: UserStory; review: ReactNode
         <h2 className="text-sm font-medium text-muted-foreground">Agent workflow</h2>
         <dl><Property label="Current step" icon={<ColumnIcon column={story.column} />}>{kanbanColumns.find((column) => column.id === story.column)?.title}</Property></dl>
         {review}
+        {story.codingAgent && <MergeRequest run={story.codingAgent} />}
       </section>
       <section className="space-y-5">
         <h2 className="text-sm font-medium text-muted-foreground">Jira properties</h2>

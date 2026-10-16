@@ -1,6 +1,5 @@
 import {
   Bot,
-  Brain,
   CircleAlert,
   CircleCheck,
   CircleDashed,
@@ -10,15 +9,14 @@ import {
   GitMerge,
   GitPullRequest,
   Loader,
-  Wrench,
   type LucideIcon,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import type { CodingAgentActivity, CodingAgentRun, CodingAgentStatus } from '@/lib/domain'
-import { cn, timeAgo } from '@/lib/utils'
+import type { CodingAgentRun, CodingAgentStatus } from '@/lib/domain'
+import { cn } from '@/lib/utils'
 
-// Coding agent session, presented like Linear: the agent is a teammate
-// with a status, a stream of published activities and, eventually, a merge request.
+// Coding agent status and merge request, presented like Linear: the agent is a teammate
+// with a status and, eventually, a merge request. Its session is shown by OpencodeSession.
 
 const statusStyles: Record<CodingAgentStatus, { label: string; icon: LucideIcon; className: string; live?: boolean }> = {
   queued: { label: 'Queued', icon: CircleDashed, className: 'text-muted-foreground' },
@@ -56,67 +54,6 @@ export function CodingAgentChip({ run }: { run: CodingAgentRun }) {
   )
 }
 
-const duration = (ms: number) => {
-  const minutes = Math.round(ms / 60_000)
-  return minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)} h ${minutes % 60} min`
-}
-const numberFormat = new Intl.NumberFormat('en')
-
-export function CodingAgentPanel({ run }: { run?: CodingAgentRun }) {
-  if (!run) {
-    return (
-      <p className="flex items-center justify-center gap-2 rounded-lg border border-dashed p-8 text-muted-foreground">
-        The coding agent starts once the plan is approved.
-      </p>
-    )
-  }
-
-  const style = statusStyles[run.status]
-
-  return (
-    <div className="space-y-5">
-      <section className="flex items-center gap-3 rounded-lg border p-3">
-        <AgentAvatar className="size-9 [&_svg]:size-4.5" />
-        <div className="min-w-0 flex-1">
-          <p className="font-medium">{run.agent}</p>
-          <p className="text-xs text-muted-foreground">
-            Started {timeAgo(run.startedAt)}
-            {run.durationMs !== undefined && ` · ${duration(run.durationMs)}`}
-            {run.inputTokens !== undefined && ` · ${numberFormat.format(run.inputTokens + (run.outputTokens ?? 0))} tokens`}
-          </p>
-        </div>
-        <StatusPill status={run.status} />
-      </section>
-
-      <section className="space-y-2">
-        <h3 className="text-xs font-medium text-muted-foreground">Activity</h3>
-        {run.activities.length ? (
-          <ol className="relative space-y-3 pl-7 before:absolute before:inset-y-2 before:left-2.5 before:w-px before:bg-border">
-            {run.activities.map((activity) => (
-              <ActivityRow key={activity.id} activity={activity} />
-            ))}
-            {style.live && (
-              <li className="relative flex items-center gap-2 text-xs text-muted-foreground">
-                <span className="absolute -left-7 flex size-5 items-center justify-center rounded-full bg-background">
-                  <Loader className="size-3.5 animate-spin" aria-hidden="true" />
-                </span>
-                <span className="animate-pulse">{run.status === 'needs-input' ? 'Waiting for an answer…' : 'Working…'}</span>
-              </li>
-            )}
-          </ol>
-        ) : (
-          <p className="flex items-center gap-2 rounded-lg border border-dashed px-4 py-6 text-sm text-muted-foreground">
-            <CircleDashed className="size-4" aria-hidden="true" />
-            Waiting for the agent to pick up the plan.
-          </p>
-        )}
-      </section>
-
-      {(run.branch || run.pullRequest) && <MergeRequest run={run} />}
-    </div>
-  )
-}
-
 function StatusPill({ status }: { status: CodingAgentStatus }) {
   const { label, icon: Icon, className, live } = statusStyles[status]
   return (
@@ -127,73 +64,35 @@ function StatusPill({ status }: { status: CodingAgentStatus }) {
   )
 }
 
-const activityStyles: Record<CodingAgentActivity['kind'], { icon: LucideIcon; className: string }> = {
-  thought: { icon: Brain, className: 'text-muted-foreground' },
-  action: { icon: Wrench, className: 'text-foreground' },
-  question: { icon: CircleHelp, className: 'text-amber-600 dark:text-amber-400' },
-  response: { icon: CircleCheck, className: 'text-green-600 dark:text-green-400' },
-  error: { icon: CircleAlert, className: 'text-red-600 dark:text-red-400' },
-}
-
-function ActivityRow({ activity }: { activity: CodingAgentActivity }) {
-  const { icon: Icon, className } = activityStyles[activity.kind]
-  const highlighted = activity.kind === 'question' || activity.kind === 'response'
-
-  return (
-    <li className="relative">
-      <span className={cn('absolute -left-7 flex size-5 items-center justify-center rounded-full bg-background', className)}>
-        <Icon className="size-3.5" aria-hidden="true" />
-      </span>
-      <div
-        className={cn(
-          'text-sm',
-          activity.kind === 'thought' && 'text-muted-foreground italic',
-          highlighted && 'rounded-lg border px-3 py-2',
-          activity.kind === 'question' && 'border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/40',
-        )}
-      >
-        <p className="flex flex-wrap items-baseline gap-x-2">
-          <span>{activity.text}</span>
-          {activity.file && <code className="rounded bg-muted px-1.5 py-px font-mono text-xs not-italic">{activity.file}</code>}
-          <time dateTime={activity.at} className="ml-auto text-xs text-muted-foreground not-italic">
-            {timeAgo(activity.at)}
-          </time>
-        </p>
-      </div>
-    </li>
-  )
-}
-
 const ciStyles = {
   pending: { label: 'Pipeline running', className: 'text-amber-600 dark:text-amber-400' },
   passed: { label: 'Pipeline passed', className: 'text-green-600 dark:text-green-400' },
   failed: { label: 'Pipeline failed', className: 'text-red-600 dark:text-red-400' },
 }
 
-function MergeRequest({ run }: { run: CodingAgentRun }) {
+// GitLab merge request opened by OpenCode, shown in the story sidebar next to the session.
+export function MergeRequest({ run }: { run: CodingAgentRun }) {
   const mr = run.pullRequest
 
   return (
-    <section className="space-y-2">
-      <h3 className="text-xs font-medium text-muted-foreground">Merge request</h3>
-      <div className="flex flex-wrap items-center gap-3 rounded-lg border p-3 text-sm">
-        <GitPullRequest className="size-4 text-green-600 dark:text-green-400" aria-hidden="true" />
-        <div className="min-w-0 flex-1 space-y-0.5">
-          {mr && <p className="font-medium">!{mr.number}</p>}
-          {run.branch && (
-            <p className="flex items-center gap-1 truncate font-mono text-xs text-muted-foreground">
-              <GitBranch className="size-3 shrink-0" aria-hidden="true" />
-              {run.branch}
-            </p>
-          )}
-        </div>
-        {mr && (
-          <>
-            <span className="font-mono text-xs tabular-nums">
-              <span className="text-green-600 dark:text-green-400">+{mr.additions}</span>{' '}
-              <span className="text-red-600 dark:text-red-400">−{mr.deletions}</span>
-            </span>
-            <span className={cn('flex items-center gap-1 text-xs', ciStyles[mr.ci].className)}>
+    <div className="space-y-3 rounded-lg border p-3 text-sm">
+      <div className="flex items-center gap-2">
+        <GitPullRequest className="size-4 shrink-0 text-green-600 dark:text-green-400" aria-hidden="true" />
+        <span className="font-medium">{mr ? `!${mr.number}` : 'No merge request yet'}</span>
+        <span className="ml-auto">
+          <StatusPill status={run.status} />
+        </span>
+      </div>
+      {run.branch && (
+        <p className="flex items-center gap-1 truncate font-mono text-xs text-muted-foreground" title={run.branch}>
+          <GitBranch className="size-3 shrink-0" aria-hidden="true" />
+          <span className="truncate">{run.branch}</span>
+        </p>
+      )}
+      {mr && (
+        <>
+          <div className="flex items-center justify-between gap-2 text-xs">
+            <span className={cn('flex items-center gap-1', ciStyles[mr.ci].className)}>
               {mr.ci === 'pending' ? (
                 <Loader className="size-3.5 animate-spin" aria-hidden="true" />
               ) : mr.ci === 'passed' ? (
@@ -203,13 +102,17 @@ function MergeRequest({ run }: { run: CodingAgentRun }) {
               )}
               {ciStyles[mr.ci].label}
             </span>
-            <Button variant="outline" size="sm" nativeButton={false} render={<a href={mr.url} target="_blank" rel="noreferrer" />}>
-              <ExternalLink data-icon="inline-start" />
-              Open in GitLab
-            </Button>
-          </>
-        )}
-      </div>
-    </section>
+            <span className="font-mono tabular-nums">
+              <span className="text-green-600 dark:text-green-400">+{mr.additions}</span>{' '}
+              <span className="text-red-600 dark:text-red-400">−{mr.deletions}</span>
+            </span>
+          </div>
+          <Button variant="outline" size="sm" className="w-full" nativeButton={false} render={<a href={mr.url} target="_blank" rel="noreferrer" />}>
+            <ExternalLink data-icon="inline-start" />
+            Open in GitLab
+          </Button>
+        </>
+      )}
+    </div>
   )
 }
