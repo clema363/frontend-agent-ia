@@ -22,13 +22,13 @@ import {
 import { stageForColumn } from "@/lib/story-workflow";
 import { cn, timeAgo } from "@/lib/utils";
 import {
-  ArrowUp,
   Bot,
   CircleCheck,
   ExternalLink,
   Loader,
   MessageSquareText,
   Pencil,
+  Send,
 } from "@lucide/vue";
 import { defineComponent, ref, type Ref } from "vue";
 // One tab per stage, plus the coding agent tab once the plan has been sent.
@@ -263,7 +263,7 @@ export const StoryDetail = defineComponent(
           </div>
 
           {output && (
-            <footer class="border-t bg-background py-5">
+            <footer class="space-y-3 border-t bg-background py-5">
               <ReviewBar
                 key={stageTab}
                 storyKey={story.key}
@@ -278,19 +278,14 @@ export const StoryDetail = defineComponent(
                 onApprove={() => actions.onApprove(story.id)}
                 onEdit={startEditing}
               />
+              {isCurrent && (
+                <ChatInput
+                  inputRef={chatInputRef}
+                  agent={stage.agent}
+                  onSend={(text) => actions.onChat(story.id, text)}
+                />
+              )}
             </footer>
-          )}
-
-          {output && isCurrent && (
-            // Pinned to the bottom of the page scroller, like a chat composer.
-            // -mb-10 cancels the layout's bottom padding so the bar sits flush.
-            <div class="sticky bottom-0 z-10 -mb-10 bg-linear-to-t from-background from-75% to-transparent pt-6 pb-6">
-              <ChatInput
-                inputRef={chatInputRef}
-                agent={stage.agent}
-                onSend={(text) => actions.onChat(story.id, text)}
-              />
-            </div>
           )}
         </div>
       );
@@ -681,7 +676,7 @@ const ChatInput = defineComponent(
       }
       return (
         <form
-          class="flex items-end gap-2 rounded-3xl border bg-background p-2 pl-4 shadow-lg transition-colors focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50 dark:bg-input/30"
+          class="flex items-end gap-2"
           onSubmit={(event) => {
             event.preventDefault();
             send();
@@ -694,24 +689,22 @@ const ChatInput = defineComponent(
               setText((event.target as HTMLInputElement).value)
             }
             onKeydown={(event) => {
-              if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {
+              if (event.key === "Enter" && !event.shiftKey) {
                 event.preventDefault();
                 send();
               }
             }}
-            rows={1}
             placeholder={`Ask the ${agent} to change something…`}
-            class="max-h-48 min-h-9 resize-none rounded-none border-0 bg-transparent px-0 py-2 shadow-none focus-visible:ring-0 dark:bg-transparent"
+            class="max-h-40 min-h-10"
             aria-label={`Message to the ${agent}`}
           />
           <Button
             type="submit"
             size="icon"
-            class="shrink-0 rounded-full"
             disabled={!text.value.trim()}
             aria-label="Send message"
           >
-            <ArrowUp />
+            <Send />
           </Button>
         </form>
       );
