@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type Ref } from 'react'
+import { useEffect, useRef, useState, type Ref, type RefObject } from 'react'
 import {
   ArrowUp,
   Bot,
@@ -21,7 +21,7 @@ import { diffLines } from '@/lib/diff'
 import { useJournal, useSettings } from '@/api/hooks'
 import { kanbanColumns, opencodeSteps, stages, type KanbanColumnId, type OpencodeStepId, type Role, type StageId, type StageOutput, type UserStory } from '@/lib/domain'
 import { stageForColumn } from '@/lib/story-workflow'
-import { cn, timeAgo } from '@/lib/utils'
+import { cn, scrollParent, timeAgo } from '@/lib/utils'
 
 // One tab per step: the document stages, then the OpenCode steps (plan, coding).
 type Tab = StageId | OpencodeStepId
@@ -31,6 +31,21 @@ const columnIndex = (column: KanbanColumnId) => kanbanColumns.findIndex((item) =
 const opencodeEmptyText: Record<OpencodeStepId, string> = {
   plan: 'OpenCode is preparing the plan…',
   coding: 'OpenCode starts coding once the plan is approved.',
+}
+
+// True once the element has fully scrolled out of the page scroller.
+function useScrolledPast(ref: RefObject<HTMLElement | null>) {
+  const [past, setPast] = useState(false)
+  useEffect(() => {
+    if (!ref.current) return
+    const target = ref.current
+    const scroller = scrollParent(target)
+    const update = () => setPast(target.getBoundingClientRect().bottom < scroller.getBoundingClientRect().top)
+    update()
+    scroller.addEventListener('scroll', update, { passive: true })
+    return () => scroller.removeEventListener('scroll', update)
+  }, [ref])
+  return past
 }
 
 export type StoryActions = {
@@ -48,9 +63,11 @@ type StoryDetailProps = StoryActions & {
   approving?: boolean
   // Lets the page block approval while the document has unsaved edits.
   onEditingChange?: (editing: boolean) => void
+  // The title has scrolled away: the page header shows it instead.
+  onTitleHiddenChange?: (hidden: boolean) => void
 }
 
-export function StoryDetail({ story, role, approving = false, onEditingChange, ...actions }: StoryDetailProps) {
+export function StoryDetail({ story, role, approving = false, onEditingChange, onTitleHiddenChange, ...actions }: StoryDetailProps) {
   const currentStage = stageForColumn(story.column)
   const jiraUrl = useSettings().data?.jiraUrl
   const currentTab: Tab = currentStage?.id ?? opencodeSteps.find((item) => item.column === story.column)?.id ?? 'plan'
@@ -61,12 +78,19 @@ export function StoryDetail({ story, role, approving = false, onEditingChange, .
   const [draft, setDraft] = useState('')
   const [showChanges, setShowChanges] = useState(false)
   const chatInputRef = useRef<HTMLTextAreaElement>(null)
+  const titleRef = useRef<HTMLHeadingElement>(null)
+  const titleHidden = useScrolledPast(titleRef)
 
   const stage = stages.find((item) => item.id === stageTab) ?? stages[0]
   const output = opencodeStep ? undefined : story.stages[stageTab]
   const isCurrent = currentTab === tab
   const canValidate = stage.approvers.includes(role)
   const previousOutput = tab === 'refinement' ? story.stages.authoring : undefined
+
+  useEffect(() => {
+    onTitleHiddenChange?.(titleHidden)
+    return () => onTitleHiddenChange?.(false)
+  }, [titleHidden, onTitleHiddenChange])
 
   useEffect(() => {
     onEditingChange?.(editing)
@@ -91,7 +115,7 @@ export function StoryDetail({ story, role, approving = false, onEditingChange, .
 
   return (
     <div className="flex min-h-0 flex-col">
-      <div className="flex flex-col gap-2 pb-6">
+      <div className="flex flex-col gap-2">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <IssueTypeIcon type={story.type} />
           <span>{story.type}</span>
@@ -110,9 +134,13 @@ export function StoryDetail({ story, role, approving = false, onEditingChange, .
 
           </div>
         </div>
-        <h2 className="mt-3 text-3xl leading-snug font-semibold tracking-tight">{story.title}</h2>
+        <h2 ref={titleRef} className="mt-3 text-3xl leading-snug font-semibold tracking-tight">{story.title}</h2>
+      </div>
 
-        <Tabs value={tab} onValueChange={(value) => changeTab(value as Tab)} className="pt-2">
+      {/* Only the tabs stay pinned while the page scrolls; no overlay, so nothing jumps.
+          Sticky offsets start inside the scroller's pt-6, so -top-6 sits flush with its edge. */}
+      <div className={cn('sticky -top-6 z-20 mb-6 border-b bg-background pt-4 pb-2 transition-colors', !titleHidden && 'border-transparent')}>
+        <Tabs value={tab} onValueChange={(value) => changeTab(value as Tab)}>
           <TabsList className="w-full">
             {stages.map((item) => (
               <TabsTrigger key={item.id} value={item.id}>

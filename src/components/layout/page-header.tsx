@@ -5,6 +5,7 @@ import { Link } from 'react-router'
 import { PageHeaderContext } from '@/components/layout/page-header-context'
 import { Separator } from '@/components/ui/separator'
 import { SidebarTrigger } from '@/components/ui/sidebar'
+import { cn } from '@/lib/utils'
 
 type PageHeaderProps = {
   title: string
@@ -12,10 +13,12 @@ type PageHeaderProps = {
   // Parent page shown in the breadcrumb (Projects › 6804-cashgpt).
   parent?: { label: string; to: string }
   actions?: ReactNode
+  // Extra context faded in after the title, e.g. the story title once it has scrolled away.
+  detail?: { text: string; visible: boolean }
 }
 
 // Keep the header separate from the content so it stays still during scroll bounce.
-export function PageHeader({ title, icon: Icon, parent, actions }: PageHeaderProps) {
+export function PageHeader({ title, icon: Icon, parent, actions, detail }: PageHeaderProps) {
   const headerContainer = useContext(PageHeaderContext)
   const header = (
     <header className="flex h-12 items-center gap-2 border-b bg-background px-3">
@@ -31,7 +34,15 @@ export function PageHeader({ title, icon: Icon, parent, actions }: PageHeaderPro
             <ChevronRight className="size-3.5 shrink-0 text-muted-foreground/60" aria-hidden="true" />
           </>
         )}
-        <h1 className="truncate font-medium">{title}</h1>
+        <h1 className="shrink-0 font-medium">{title}</h1>
+        {detail && (
+          <span
+            aria-hidden={!detail.visible}
+            className={cn('truncate text-muted-foreground transition-opacity duration-200', detail.visible ? 'opacity-100' : 'opacity-0')}
+          >
+            {detail.text}
+          </span>
+        )}
       </nav>
       {actions && <div className="ml-auto flex items-center gap-2">{actions}</div>}
     </header>

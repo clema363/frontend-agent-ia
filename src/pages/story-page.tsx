@@ -21,6 +21,7 @@ export function StoryPage() {
   const dispatch = useAppDispatch()
   const [error, setError] = useState<string>()
   const [editing, setEditing] = useState(false)
+  const [titleHidden, setTitleHidden] = useState(false)
   const story = stories.find((item) => item.id === storyId)
   const role = me?.role ?? 'PO'
   const savedReturn = location.state?.returnTo
@@ -53,6 +54,7 @@ export function StoryPage() {
         title={story?.key ?? 'Issue'}
         icon={SquareKanban}
         parent={{ label: 'Kanban', to: returnTo }}
+        detail={story && { text: story.title, visible: titleHidden }}
         actions={
           <Button variant="ghost" size="sm" nativeButton={false} render={<Link to={returnTo} />}>
             <ArrowLeft data-icon="inline-start" />
@@ -69,7 +71,7 @@ export function StoryPage() {
           <Button variant="outline" nativeButton={false} render={<Link to="/kanban" />}><ArrowLeft /> Back to Kanban</Button>
         </div>
       ) : (
-        <div className="mx-auto grid max-w-7xl items-start gap-10 py-4 lg:grid-cols-[minmax(0,1fr)_260px] lg:gap-16 lg:px-6 lg:py-10 xl:gap-24">
+        <div className="mx-auto grid max-w-7xl items-start gap-10 pt-4 lg:grid-cols-[minmax(0,1fr)_260px] lg:gap-16 lg:px-6 lg:pt-10 xl:gap-24">
           <section className="min-w-0">
             <StoryDetail
               key={`${story.id}-${story.column}`}
@@ -77,6 +79,7 @@ export function StoryPage() {
               role={role}
               approving={mutations.decide.isLoading}
               onEditingChange={setEditing}
+              onTitleHiddenChange={setTitleHidden}
               {...actions}
             />
           </section>
