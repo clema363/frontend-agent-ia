@@ -9,6 +9,7 @@ import { ProjectContext } from '@/components/projects/project-context'
 import { ProjectJiraFields } from '@/components/projects/project-jira-fields'
 import { ProjectMembers } from '@/components/projects/project-members'
 import { RoleBadges, SectionHeader } from '@/components/projects/project-parts'
+import { ProjectSkills } from '@/components/projects/project-skills'
 import { SourcesSection } from '@/components/projects/project-sources'
 import { buttonVariants } from '@/components/ui/button-variants'
 import { Button } from '@/components/ui/button'
@@ -22,6 +23,7 @@ const tabs = [
   { id: 'members', label: 'Members' },
   { id: 'fields', label: 'Jira fields' },
   { id: 'context', label: 'Context' },
+  { id: 'skills', label: 'Skills' },
 ] as const
 
 type TabId = (typeof tabs)[number]['id']
@@ -128,6 +130,8 @@ function ProjectTab({ tab, project, boardUrl }: { tab: TabId; project: Project; 
       return <ProjectJiraFields project={project} />
     case 'context':
       return <ProjectContext project={project} />
+    case 'skills':
+      return <ProjectSkills project={project} />
     default:
       return <ProjectOverview project={project} boardUrl={boardUrl} />
   }
