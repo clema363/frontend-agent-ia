@@ -103,8 +103,9 @@ it('keeps edits isolated per US, restores closed files, persists drafts and revi
     expect(container.querySelector('[role="status"]')?.textContent).toContain(
       '1 unsaved',
     )
+    expect(container.querySelector('[aria-label="Changes"]')?.textContent).toBe('1')
     expect(container.querySelector('file-tree-container')?.shadowRoot?.querySelector('[data-item-path="README.md"]')?.getAttribute('data-item-git-status')).toBe('modified')
-    await act(async () => button('Save locally').click())
+    await act(async () => button('Save').click())
     expect(readWorkspaceDraft('us-109').saved['README.md']).toBe(
       '# Edited story\n',
     )
@@ -128,7 +129,10 @@ it('keeps edits isolated per US, restores closed files, persists drafts and revi
     expect(localStorage.getItem(workspaceStorageKey('us-112'))).toBeNull()
     await changeStory('us-109')
     expect(container.querySelector('textarea')?.value).toBe('# Edited story\n')
-    await act(async () => button('Changes1').click())
+    await act(async () =>
+      container.querySelector<HTMLButtonElement>('[aria-label="Changes"]')!.click(),
+    )
+    expect(container.querySelector('[aria-label="Changed files"]')?.textContent).toContain('README.md')
     expect(
       container.querySelector('[aria-label="Changes in README.md"]')
         ?.textContent,
@@ -141,13 +145,18 @@ it('keeps edits isolated per US, restores closed files, persists drafts and revi
       document.querySelector('[role="dialog"] a')?.getAttribute('href'),
     ).toContain('/merge_requests/42')
     await act(async () => button('Continue editing').click())
-    await act(async () => button('Changes1').click())
+    await act(async () =>
+      container.querySelector<HTMLButtonElement>('[aria-label="Files"]')!.click(),
+    )
     const previousSession = container.querySelector('textarea')?.dataset.editStateKey
     await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="Discard file changes"]')!.click())
     await act(async () => button('Discard changes').click())
     expect(container.querySelector('textarea')?.value).toContain('US-109')
     expect(container.querySelector('textarea')?.dataset.editStateKey).not.toBe(previousSession)
     expect(readWorkspaceDraft('us-109')).toEqual({ drafts: {}, saved: {} })
+    await act(async () =>
+      container.querySelector<HTMLButtonElement>('[aria-label="Search files"]')!.click(),
+    )
     const findFile = container.querySelector<HTMLInputElement>('[aria-label="Find a file"]')!
     await act(async () => {
       Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(findFile, 'nonexistent-file')

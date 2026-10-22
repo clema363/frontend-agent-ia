@@ -6,12 +6,11 @@ import {
   useMemo,
   useId,
   useState,
+  type ReactNode,
 } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import {
-  ArrowLeft,
   ArrowUpRight,
-  Check,
   ChevronRight,
   Code2,
   Files,
@@ -19,11 +18,17 @@ import {
   GitCompareArrows,
   GitMerge,
   RotateCcw,
-  Save,
+  Search,
   X,
+  type LucideIcon,
 } from 'lucide-react'
 import { useStories } from '@/api/hooks'
-import { FileExplorer, FileIcon } from '@/components/editor/file-explorer'
+import {
+  EditorSidebar,
+  FileExplorer,
+  FileIcon,
+  FileRow,
+} from '@/components/editor/file-explorer'
 import { PageHeader } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
 import {
@@ -61,6 +66,34 @@ export function EditorPage() {
   const story = selected
     ? stories.find((item) => item.id === selected)
     : (stories.find((item) => item.column === 'coding') ?? stories[0])
+  const picker = (
+    <Select
+      items={stories.map((item) => ({
+        value: item.id,
+        label: `${item.key} · ${item.title}`,
+      }))}
+      value={story?.id ?? null}
+      disabled={isLoading || isError}
+      onValueChange={(value) => value && setParams({ us: value })}
+    >
+      <SelectTrigger
+        size="sm"
+        aria-label="User story workspace"
+        className="min-w-0 max-w-72 border-transparent bg-transparent text-sm font-medium shadow-none hover:bg-accent/60 dark:bg-transparent"
+      >
+        <SelectValue
+          placeholder={isLoading ? 'Loading stories…' : 'Select a user story'}
+        />
+      </SelectTrigger>
+      <SelectContent>
+        {stories.map((item) => (
+          <SelectItem key={item.id} value={item.id} className="text-xs">
+            {item.key} · {item.title}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  )
   return (
     <>
       <PageHeader
@@ -82,80 +115,143 @@ export function EditorPage() {
         }
       />
       <div className="flex min-h-0 flex-1 flex-col">
-        <div className="flex flex-wrap items-center gap-3 border-b px-4 py-3">
-          <span className="flex items-center gap-2 text-sm font-medium">
-            <Files className="size-4 text-muted-foreground" />
-            Workspace
-          </span>
-          <Select
-            items={stories.map((item) => ({
-              value: item.id,
-              label: `${item.key} · ${item.title}`,
-            }))}
-            value={story?.id ?? null}
-            disabled={isLoading || isError}
-            onValueChange={(value) => value && setParams({ us: value })}
-          >
-            <SelectTrigger
-              size="sm"
-              aria-label="User story workspace"
-              className="min-w-0 max-w-full flex-1 text-xs sm:max-w-96"
-            >
-              <SelectValue
-                placeholder={isLoading ? 'Loading stories…' : 'Select a user story'}
-              />
-            </SelectTrigger>
-            <SelectContent>
-              {stories.map((item) => (
-                <SelectItem key={item.id} value={item.id} className="text-xs">
-                  {item.key} · {item.title}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <span
-            title="Demo files. Edits stay in this browser. Repository access, commits and merging require the workspace API."
-            className="rounded border border-amber-500/25 bg-amber-500/10 px-2 py-1 text-[10px] font-medium text-amber-700 sm:ml-auto dark:text-amber-400"
-          >
-            DEMO WORKSPACE
-          </span>
-        </div>
-        {isLoading ? (
-          <p className="p-8 text-sm text-muted-foreground">
-            Loading workspace…
-          </p>
-        ) : isError ? (
-          <div className="p-8">
-            <p className="mb-3 text-sm">Unable to load user stories.</p>
-            <Button variant="outline" onClick={() => void refetch()}>
-              Retry
-            </Button>
-          </div>
-        ) : story ? (
-          <StoryWorkspace key={story.id} story={story} />
+        {story ? (
+          <StoryWorkspace key={story.id} story={story} picker={picker} />
         ) : (
-          <div className="p-8 text-sm text-muted-foreground">
-            {selected
-              ? 'This user story was not found. Select another story above.'
-              : 'Create a user story in Kanban to open its workspace.'}
-          </div>
+          <>
+            <WorkspaceHeader picker={picker} />
+            {isLoading ? (
+              <p className="p-8 text-sm text-muted-foreground">
+                Loading workspace…
+              </p>
+            ) : isError ? (
+              <div className="p-8">
+                <p className="mb-3 text-sm">Unable to load user stories.</p>
+                <Button variant="outline" onClick={() => void refetch()}>
+                  Retry
+                </Button>
+              </div>
+            ) : (
+              <div className="p-8 text-sm text-muted-foreground">
+                {selected
+                  ? 'This user story was not found. Select another story above.'
+                  : 'Create a user story in Kanban to open its workspace.'}
+              </div>
+            )}
+          </>
         )}
       </div>
     </>
   )
 }
 
-function StoryWorkspace({ story }: { story: UserStory }) {
+function WorkspaceHeader({
+  picker,
+  branch,
+  actions,
+}: {
+  picker: ReactNode
+  branch?: string
+  actions?: ReactNode
+}) {
+  return (
+    <div className="flex h-10 shrink-0 items-center gap-2 border-b px-2">
+      {picker}
+      {branch && (
+        <span
+          className="hidden min-w-0 items-center gap-1 truncate text-xs text-muted-foreground/70 sm:flex"
+          title={branch}
+        >
+          <GitBranch className="size-3 shrink-0" />
+          <span className="truncate font-mono">{branch}</span>
+        </span>
+      )}
+      <div className="ml-auto flex shrink-0 items-center gap-1.5">
+        <span
+          title="Demo files. Edits stay in this browser. Repository access, commits and merging require the workspace API."
+          className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-400">
+          Demo
+        </span>
+        {actions}
+      </div>
+    </div>
+  )
+}
+
+function ActivityBarButton({
+  label,
+  icon: Icon,
+  active,
+  badge,
+  onClick,
+}: {
+  label: string
+  icon: LucideIcon
+  active: boolean
+  badge?: number
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      aria-pressed={active}
+      title={label}
+      onClick={onClick}
+      className={cn(
+        'relative flex h-12 w-full items-center justify-center text-muted-foreground/70 transition-colors hover:bg-accent/60 hover:text-foreground',
+        active && 'bg-accent text-foreground',
+      )}
+    >
+      <Icon className="size-5" strokeWidth={1.6} />
+      {Boolean(badge) && (
+        <span className="absolute top-2 right-2 min-w-3.5 rounded-full bg-primary px-1 text-[9px] leading-3.5 font-medium text-primary-foreground tabular-nums">
+          {badge}
+        </span>
+      )}
+    </button>
+  )
+}
+
+function DiffStat({ before, after }: { before: string; after: string }) {
+  const counts = new Map<string, number>()
+  for (const line of before.split('\n'))
+    counts.set(line, (counts.get(line) ?? 0) + 1)
+  let additions = 0
+  for (const line of after.split('\n')) {
+    const left = counts.get(line) ?? 0
+    if (left) counts.set(line, left - 1)
+    else additions++
+  }
+  const deletions = [...counts.values()].reduce((sum, left) => sum + left, 0)
+  return (
+    <span className="flex shrink-0 gap-1.5 text-[11px] tabular-nums">
+      <span className="text-emerald-600 dark:text-emerald-400">
+        +{additions}
+      </span>
+      <span className="text-red-600 dark:text-red-400">-{deletions}</span>
+    </span>
+  )
+}
+
+function StoryWorkspace({
+  story,
+  picker,
+}: {
+  story: UserStory
+  picker: ReactNode
+}) {
   const files = useMemo(() => demoWorkspace(story), [story])
   const [local, setLocal] = useState(() => readWorkspaceDraft(story.id))
   const editorScope = useId()
   const [fileRevisions, setFileRevisions] = useState<Record<string, number>>({})
-  const [tabs, setTabs] = useState(['README.md'])
   const [active, setActive] = useState<string | undefined>('README.md')
-  const [view, setView] = useState<'files' | 'changes'>('files')
+  const [mode, setMode] = useState<'files' | 'changes'>('files')
+  const [searching, setSearching] = useState(false)
+  const [query, setQuery] = useState('')
+  const [sidebar, setSidebar] = useState(true)
   const [review, setReview] = useState(false)
   const [resetPath, setResetPath] = useState<string>()
-  const [explorer, setExplorer] = useState(true)
   const [storageError, setStorageError] = useState(false)
   const [cursor, setCursor] = useState({ line: 1, column: 1 })
   const file = files.find((item) => item.path === active)
@@ -171,6 +267,12 @@ function StoryWorkspace({ story }: { story: UserStory }) {
     (item) => content(item.path) !== (local.saved[item.path] ?? item.content),
   )
   const value = file ? content(file.path) : ''
+  const dirty = file ? unsaved.includes(file) : false
+  const matches = files.filter((item) =>
+    item.path.toLowerCase().includes(query.trim().toLowerCase()),
+  )
+  const branch =
+    story.codingAgent?.branch ?? `workspace/${story.key.toLowerCase()}`
 
   const persist = useCallback(
     (next: WorkspaceDraft) => {
@@ -194,15 +296,15 @@ function StoryWorkspace({ story }: { story: UserStory }) {
   )
   function open(path: string) {
     setActive(path)
-    setTabs((current) =>
-      current.includes(path) ? current : [...current, path],
-    )
     setCursor({ line: 1, column: 1 })
   }
-  function close(path: string) {
-    const next = tabs.filter((tab) => tab !== path)
-    setTabs(next)
-    if (active === path) setActive(next.at(-1))
+  // Re-selecting the active activity item collapses the sidebar (VS Code style).
+  function selectActivity(item: 'files' | 'changes' | 'search') {
+    const current = searching ? 'search' : mode
+    if (sidebar && current === item) return setSidebar(false)
+    setSidebar(true)
+    setSearching(item === 'search')
+    if (item !== 'search') setMode(item)
   }
 
   useEffect(() => {
@@ -216,69 +318,123 @@ function StoryWorkspace({ story }: { story: UserStory }) {
     return () => window.removeEventListener('keydown', onKey)
   }, [save])
 
+  const segments = file ? [story.key, ...file.path.split('/')] : []
+
   return (
     <>
-      <div className="flex flex-wrap items-center gap-2 border-b bg-muted/15 px-4 py-2">
-        <Button
-          size="icon-sm"
-          variant="ghost"
-          aria-label="Toggle file explorer"
-          aria-pressed={explorer}
-          onClick={() => setExplorer(!explorer)}
-        >
-          <Files />
-        </Button>
-        <GitBranch className="size-3.5 text-muted-foreground" />
-        <span
-          className="max-w-56 truncate font-mono text-[11px] text-muted-foreground"
-          title={story.codingAgent?.branch}
-        >
-          {story.codingAgent?.branch ?? `workspace/${story.key.toLowerCase()}`}
-        </span>
-        <div className="ml-auto flex items-center gap-1">
-          <Button
-            variant={view === 'changes' ? 'secondary' : 'ghost'}
-            aria-label={`Changes ${modified.size}`}
-            aria-pressed={view === 'changes'}
-            size="sm"
-            onClick={() => setView(view === 'files' ? 'changes' : 'files')}
-          >
-            <GitCompareArrows />
-            <span className="hidden sm:inline">Changes</span>
-            <span className="rounded bg-muted px-1.5 text-[10px]">
-              {modified.size}
-            </span>
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={!unsaved.length && !storageError}
-            aria-label="Save locally"
-            onClick={save}
-          >
-            <Save />
-            <span className="hidden sm:inline">Save locally</span>
-          </Button>
+      <WorkspaceHeader
+        picker={picker}
+        branch={branch}
+        actions={
           <Button
             aria-label="Review & merge"
+            variant="outline"
             size="sm"
             onClick={() => setReview(true)}
           >
             <GitMerge />
             <span className="hidden sm:inline">Review & merge</span>
           </Button>
-        </div>
-      </div>
-      <div
-        className={cn(
-          'grid min-h-0 flex-1',
-          explorer
-            ? 'grid-cols-[180px_minmax(0,1fr)] lg:grid-cols-[250px_minmax(0,1fr)]'
-            : 'grid-cols-1',
-        )}
-      >
-        {explorer &&
-          (view === 'files' ? (
+        }
+      />
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        <nav
+          aria-label="Editor activity bar"
+          className="flex w-12 shrink-0 flex-col items-center border-r bg-background"
+        >
+          <ActivityBarButton
+            label="Files"
+            icon={Files}
+            active={sidebar && !searching && mode === 'files'}
+            onClick={() => selectActivity('files')}
+          />
+          <ActivityBarButton
+            label="Changes"
+            icon={GitCompareArrows}
+            badge={modified.size}
+            active={sidebar && !searching && mode === 'changes'}
+            onClick={() => selectActivity('changes')}
+          />
+          <ActivityBarButton
+            label="Search files"
+            icon={Search}
+            active={sidebar && searching}
+            onClick={() => selectActivity('search')}
+          />
+        </nav>
+        {sidebar &&
+          (searching ? (
+            <EditorSidebar label="Search files" icon={Search} title="Search">
+              <div className="border-b p-2">
+                <input
+                  aria-label="Find a file"
+                  placeholder="Find a file…"
+                  autoFocus
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Escape') setQuery('')
+                    if (event.key === 'Enter' && matches[0])
+                      open(matches[0].path)
+                  }}
+                  className="h-7 w-full rounded-md border bg-muted/40 px-2 text-xs outline-none placeholder:text-muted-foreground/70 focus:border-ring"
+                />
+              </div>
+              <div className="min-h-0 flex-1 overflow-auto p-1">
+                {matches.map((item) => (
+                  <FileRow
+                    key={item.path}
+                    path={item.path}
+                    selected={active === item.path}
+                    onOpen={open}
+                  />
+                ))}
+                {!matches.length && (
+                  <p
+                    role="status"
+                    className="px-2 py-6 text-center text-xs text-muted-foreground"
+                  >
+                    No matching files.
+                  </p>
+                )}
+              </div>
+            </EditorSidebar>
+          ) : mode === 'changes' ? (
+            <EditorSidebar
+              label="Changed files"
+              icon={GitCompareArrows}
+              title="Changed files"
+              meta={
+                modified.size > 0 && (
+                  <span className="rounded-full bg-muted px-1.5 text-[10px] font-medium text-muted-foreground tabular-nums">
+                    {modified.size}
+                  </span>
+                )
+              }
+            >
+              <div className="min-h-0 flex-1 overflow-auto p-1">
+                {modifiedFiles.map((item) => (
+                  <FileRow
+                    key={item.path}
+                    path={item.path}
+                    selected={active === item.path}
+                    onOpen={open}
+                    trailing={
+                      <DiffStat
+                        before={item.content}
+                        after={content(item.path)}
+                      />
+                    }
+                  />
+                ))}
+                {!modified.size && (
+                  <p className="px-3 py-6 text-center text-xs leading-5 text-muted-foreground">
+                    No changes yet. Edit a file to see its diff here.
+                  </p>
+                )}
+              </div>
+            </EditorSidebar>
+          ) : (
             <FileExplorer
               files={files}
               active={active}
@@ -286,118 +442,96 @@ function StoryWorkspace({ story }: { story: UserStory }) {
               storyKey={story.key}
               onOpen={open}
             />
-          ) : (
-            <aside
-              aria-label="Changed files"
-              className="overflow-auto border-r bg-muted/25"
-            >
-              <div className="flex h-11 items-center px-4 text-[11px] font-semibold tracking-widest text-muted-foreground">
-                SOURCE CONTROL
-              </div>
-              <p className="px-4 pb-4 text-xs text-muted-foreground">
-                Compared with demo originals
-              </p>
-              {modifiedFiles.map((item) => (
-                <button
-                  key={item.path}
-                  onClick={() => open(item.path)}
-                  className={cn(
-                    'flex w-full items-center gap-2 px-4 py-2 text-left text-xs hover:bg-accent',
-                    active === item.path && 'bg-primary/10',
-                  )}
-                >
-                  <FileIcon path={item.path} />
-                  <span className="min-w-0 flex-1 truncate" title={item.path}>
-                    {item.path}
-                  </span>
-                  <span className="text-amber-600">M</span>
-                </button>
-              ))}
-              {!modified.size && (
-                <p className="px-4 text-xs text-muted-foreground">
-                  No changes yet. Edit a file to see its diff here.
-                </p>
-              )}
-              <Button
-                className="m-3"
-                variant="ghost"
-                size="sm"
-                onClick={() => setView('files')}
-              >
-                <ArrowLeft />
-                Explorer
-              </Button>
-            </aside>
           ))}
         <section
           aria-label="File editor"
-          className="flex min-h-0 min-w-0 flex-col"
+          className="flex min-h-0 min-w-0 flex-1 flex-col"
         >
-          <div
-            aria-label="Open files"
-            className="flex h-10 shrink-0 overflow-x-auto border-b bg-muted/20"
-          >
-            {tabs.map((path) => (
-              <div
-                key={path}
-                className={cn(
-                  'flex shrink-0 items-center border-r border-t-2 border-t-transparent text-xs',
-                  active === path && 'border-t-primary bg-background',
-                )}
-              >
-                <button
-                  onClick={() => open(path)}
-                  aria-pressed={active === path}
-                  title={path}
-                  className="flex h-full items-center gap-2 pr-2 pl-3"
-                >
-                  <FileIcon path={path} />
-                  {path.split('/').at(-1)}
-                  {content(path) !==
-                    (local.saved[path] ??
-                      files.find((item) => item.path === path)?.content) && (
-                    <span
-                      aria-label="Unsaved changes"
-                      className="size-1.5 rounded-full bg-amber-500"
-                    />
-                  )}
-                </button>
-                <button
-                  onClick={() => close(path)}
-                  title={`Close ${path}`}
-                  aria-label={`Close ${path}`}
-                  className="mr-1 rounded p-1 hover:bg-accent"
-                >
-                  <X className="size-3" />
-                </button>
-              </div>
-            ))}
-          </div>
           {file ? (
             <>
-              <div className="flex min-h-9 shrink-0 items-center gap-1 overflow-hidden border-b px-4 text-[11px] text-muted-foreground">
-                <span className="shrink-0">{story.key}</span>
-                {file.path.split('/').map((part, index) => (
-                  <span key={index} className="flex min-w-0 items-center gap-1">
-                    <ChevronRight className="size-3 shrink-0" />
-                    <span className="truncate">{part}</span>
+              <div className="flex h-10 shrink-0 items-center gap-2 border-b px-3">
+                <nav
+                  aria-label="File path"
+                  className="flex min-w-0 flex-1 items-center text-xs leading-none"
+                >
+                  <span className="flex min-w-0 shrink-[9999] items-center overflow-hidden">
+                    {segments.slice(0, -1).map((part, index) => (
+                      <span key={index} className="flex min-w-0 items-center">
+                        <span className="truncate text-muted-foreground/80">
+                          {part}
+                        </span>
+                        <ChevronRight className="mx-0.5 size-3 shrink-0 text-muted-foreground/40" />
+                      </span>
+                    ))}
                   </span>
-                ))}
-                {modified.has(file.path) && (
-                  <Button
-                    size="icon-sm"
-                    variant="ghost"
-                    className="ml-auto shrink-0"
-                    aria-label="Discard file changes"
-                    title="Discard file changes"
-                    onClick={() => setResetPath(file.path)}
+                  <FileIcon path={file.path} className="mr-1.5 size-3.5" />
+                  <span
+                    className="min-w-0 shrink truncate font-medium text-foreground"
+                    title={file.path}
                   >
-                    <RotateCcw />
-                  </Button>
+                    {segments.at(-1)}
+                  </span>
+                  {dirty && (
+                    <span
+                      aria-label="Unsaved changes"
+                      title="Unsaved changes"
+                      className="ml-2 size-1.5 shrink-0 rounded-full bg-primary"
+                    />
+                  )}
+                </nav>
+                {mode === 'changes' && (
+                  <span className="hidden shrink-0 text-[11px] text-muted-foreground/70 sm:inline">
+                    Diff vs. original
+                  </span>
                 )}
+                <span
+                  role="status"
+                  className={cn(
+                    'hidden shrink-0 text-[11px] text-muted-foreground md:inline',
+                    storageError && 'inline text-destructive',
+                  )}
+                >
+                  {storageError
+                    ? 'Browser storage unavailable'
+                    : unsaved.length
+                      ? `${unsaved.length} unsaved`
+                      : 'Saved'}
+                </span>
+                <div className="flex shrink-0 items-center gap-1">
+                  {modified.has(file.path) && (
+                    <Button
+                      size="icon-xs"
+                      variant="ghost"
+                      className="text-muted-foreground"
+                      aria-label="Discard file changes"
+                      title="Discard file changes"
+                      onClick={() => setResetPath(file.path)}
+                    >
+                      <RotateCcw />
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="xs"
+                    disabled={!unsaved.length && !storageError}
+                    onClick={save}
+                  >
+                    Save
+                  </Button>
+                  <Button
+                    size="icon-xs"
+                    variant="ghost"
+                    className="text-muted-foreground"
+                    aria-label={`Close ${file.path}`}
+                    title="Close editor"
+                    onClick={() => setActive(undefined)}
+                  >
+                    <X />
+                  </Button>
+                </div>
               </div>
               <div className="min-h-0 flex-1 overflow-hidden">
-                {view === 'changes' ? (
+                {mode === 'changes' ? (
                   <Suspense
                     fallback={
                       <p className="p-6 text-xs text-muted-foreground">
@@ -441,13 +575,21 @@ function StoryWorkspace({ story }: { story: UserStory }) {
                   </Suspense>
                 )}
               </div>
+              <footer className="flex h-6 shrink-0 items-center gap-4 border-t px-3 text-[10px] text-muted-foreground">
+                <span className="truncate">
+                  Demo files · edits stay in this browser
+                </span>
+                <span className="ml-auto shrink-0 tabular-nums">
+                  Ln {cursor.line}, Col {cursor.column}
+                </span>
+                <span className="hidden shrink-0 sm:inline">
+                  {fileLanguage(file.path)}
+                </span>
+              </footer>
             </>
           ) : (
             <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
-              <Code2 className="size-10 text-muted-foreground/40" />
-              <h2 className="text-sm font-medium">
-                Your story, your workspace
-              </h2>
+              <Code2 className="size-8 text-muted-foreground/40" />
               <p className="max-w-xs text-xs leading-5 text-muted-foreground">
                 Open a file from the explorer to start editing. Each US groups
                 its documents and repositories in one place.
@@ -456,8 +598,9 @@ function StoryWorkspace({ story }: { story: UserStory }) {
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  setExplorer(true)
-                  setView('files')
+                  setSidebar(true)
+                  setSearching(false)
+                  setMode('files')
                 }}
               >
                 Browse files
@@ -466,36 +609,6 @@ function StoryWorkspace({ story }: { story: UserStory }) {
           )}
         </section>
       </div>
-      <footer className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1 border-t bg-muted/20 px-4 py-2 text-[10px] text-muted-foreground">
-        <span
-          role="status"
-          className={cn(
-            'flex items-center gap-1.5',
-            storageError && 'text-destructive',
-          )}
-        >
-          {storageError ? (
-            'Browser storage unavailable. Keep this page open to retain edits.'
-          ) : (
-            <>
-              <Check className="size-3 text-emerald-600" />
-              {unsaved.length
-                ? `${unsaved.length} unsaved · drafts kept locally`
-                : 'Saved in this browser'}
-            </>
-          )}
-        </span>
-        <span className="ml-auto">
-          {file && `Ln ${cursor.line}, Col ${cursor.column}`}
-        </span>
-        {file && (
-          <span className="hidden sm:inline">{fileLanguage(file.path)}</span>
-        )}
-        <span className="hidden sm:inline">UTF-8</span>
-        <span className="hidden md:inline">
-          Demo files · no repository access yet
-        </span>
-      </footer>
       <Dialog open={review} onOpenChange={setReview}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
@@ -513,7 +626,9 @@ function StoryWorkspace({ story }: { story: UserStory }) {
                 className="flex w-full items-center gap-2 rounded-md border p-3 text-left text-xs hover:bg-accent"
                 onClick={() => {
                   open(item.path)
-                  setView('changes')
+                  setSidebar(true)
+                  setSearching(false)
+                  setMode('changes')
                   setReview(false)
                 }}
               >

@@ -1,12 +1,11 @@
-import { FileTree, useFileTree, useFileTreeSearch } from '@pierre/trees/react'
-import { useEffect, useRef, type CSSProperties } from 'react'
+import { FileTree, useFileTree } from '@pierre/trees/react'
+import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react'
 import {
   FileCode2,
   FileJson,
   FileText,
   FolderOpen,
-  GitBranch,
-  Search,
+  type LucideIcon,
 } from 'lucide-react'
 import { useEditorAppearance } from '@/hooks/use-editor-appearance'
 import {
@@ -45,13 +44,13 @@ export function FileIcon({
 
 const treeStyle = {
   '--trees-bg-override': 'transparent',
-  '--trees-fg-override': 'var(--foreground)',
+  '--trees-fg-override':
+    'color-mix(in oklch, var(--foreground) 80%, transparent)',
   '--trees-font-family-override': 'var(--font-sans)',
-  '--trees-font-size-override': '12px',
+  '--trees-font-size-override': '12.5px',
   '--trees-hover-bg-override': 'var(--accent)',
-  '--trees-selected-bg-override':
-    'color-mix(in oklch, var(--primary) 12%, transparent)',
-  '--trees-theme-focus-ring': 'var(--primary)',
+  '--trees-selected-bg-override': 'var(--accent)',
+  '--trees-theme-focus-ring': 'var(--ring)',
 } as CSSProperties
 
 export function FileExplorer({
@@ -79,9 +78,7 @@ export function FileExplorer({
     initialSelectedPaths: active ? [active] : [],
     flattenEmptyDirectories: false,
     search: false,
-    fileTreeSearchMode: 'hide-non-matches',
-    searchBlurBehavior: 'retain',
-    density: 'default',
+    density: 'compact',
     onSelectionChange(paths) {
       const path = paths.at(-1)
       if (
@@ -92,9 +89,6 @@ export function FileExplorer({
         latest.current.onOpen(path)
     },
   })
-  const search = useFileTreeSearch(model)
-  const noMatches =
-    search.value.trim().length > 0 && search.matchingPaths.length === 0
   useEffect(() => {
     model.setGitStatus(
       [...modified].map((path) => ({ path, status: 'modified' })),
@@ -110,59 +104,99 @@ export function FileExplorer({
   }, [active, model])
 
   return (
-    <aside
-      aria-label="File explorer"
-      className="flex min-h-0 flex-col border-r bg-muted/25"
-    >
-      <div className="flex h-11 shrink-0 items-center justify-between px-4 text-[11px] font-semibold tracking-widest text-muted-foreground">
-        EXPLORER{' '}
-        <span className="font-normal tracking-normal">
+    <EditorSidebar
+      label="File explorer"
+      icon={FolderOpen}
+      title={storyKey}
+      meta={
+        <span className="shrink-0 text-[10px] text-muted-foreground">
           {repositoryCount} demo repo{repositoryCount === 1 ? '' : 's'}
         </span>
-      </div>
-      <div className="relative mx-3 mb-3">
-        <Search className="pointer-events-none absolute top-2 left-2 size-3.5 text-muted-foreground" />
-        <input
-          aria-label="Find a file"
-          placeholder="Find a file…"
-          value={search.value}
-          onChange={(event) => search.setValue(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === 'Escape') search.close()
-          }}
-          className="h-8 w-full rounded-md border bg-background pr-2 pl-7 text-xs outline-none focus:border-primary"
-        />
-      </div>
-      <div className="flex items-center gap-2 border-y px-3 py-2 text-xs font-semibold">
-        <FolderOpen className="size-4 text-primary" />
-        {storyKey}
-        <span className="ml-auto text-[10px] font-normal text-muted-foreground">
-          WORKSPACE
-        </span>
-      </div>
+      }
+    >
       <nav
         aria-label="Workspace files"
-        className="relative min-h-0 flex-1 overflow-hidden"
+        className="relative min-h-0 flex-1 overflow-hidden px-1 py-1"
       >
         <FileTree
           model={model}
           aria-label={`${storyKey} files`}
-          className={cn('h-full min-h-0', noMatches && 'invisible')}
+          className="h-full min-h-0"
           style={{ ...treeStyle, colorScheme: appearance }}
         />
-        {noMatches && (
-          <p
-            role="status"
-            className="absolute inset-x-0 top-0 px-4 py-6 text-xs text-muted-foreground"
-          >
-            No matching files.
-          </p>
-        )}
       </nav>
-      <div className="flex items-center gap-2 border-t px-3 py-3 text-xs text-muted-foreground">
-        <GitBranch className="size-3.5" />
-        Repositories are isolated per US
+    </EditorSidebar>
+  )
+}
+
+export function EditorSidebar({
+  label,
+  icon: Icon,
+  title,
+  meta,
+  children,
+}: {
+  label: string
+  icon: LucideIcon
+  title: string
+  meta?: ReactNode
+  children: ReactNode
+}) {
+  return (
+    <aside
+      aria-label={label}
+      className="flex min-h-0 w-56 shrink-0 flex-col border-r bg-background"
+    >
+      <div className="flex h-10 shrink-0 items-center gap-2 border-b px-3">
+        <Icon className="size-3.5 shrink-0 text-muted-foreground" />
+        <span className="min-w-0 flex-1 truncate text-xs font-medium text-foreground/85">
+          {title}
+        </span>
+        {meta}
       </div>
+      {children}
     </aside>
+  )
+}
+
+/** File row shared by the changes and search panes: name first, folder muted. */
+export function FileRow({
+  path,
+  selected,
+  trailing,
+  onOpen,
+}: {
+  path: string
+  selected: boolean
+  trailing?: ReactNode
+  onOpen: (path: string) => void
+}) {
+  const slash = path.lastIndexOf('/')
+  const name = path.slice(slash + 1)
+  const dir = slash > 0 ? path.slice(0, slash) : ''
+  return (
+    <button
+      type="button"
+      title={path}
+      aria-current={selected || undefined}
+      onClick={() => onOpen(path)}
+      className={cn(
+        'flex h-8 w-full min-w-0 items-center gap-1.5 rounded-md px-2 text-left text-xs transition-colors focus-visible:bg-accent focus-visible:outline-none',
+        selected
+          ? 'bg-accent text-foreground'
+          : 'text-foreground/80 hover:bg-accent/60 hover:text-foreground',
+      )}
+    >
+      <FileIcon path={path} className="size-3.5" />
+      <span className="flex min-w-0 flex-1 items-baseline gap-1.5 overflow-hidden">
+        <span className="shrink-0 truncate font-medium">{name}</span>
+        {dir && (
+          <span className="min-w-0 truncate text-[11px] text-muted-foreground/60">
+            {dir}
+          </span>
+        )}
+      </span>
+      {trailing}
+    </button>
   )
 }
