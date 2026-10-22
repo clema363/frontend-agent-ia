@@ -11,6 +11,7 @@ import { SettingsPage } from '@/pages/settings-page'
 import { LoginPage } from '@/pages/login-page'
 import { ProfilePage } from '@/pages/profile-page'
 import { EditorPage } from '@/pages/editor-page'
+import { SkillPage } from '@/pages/skill-page'
 
 export default function App() {
   return (
@@ -21,6 +22,7 @@ export default function App() {
           <Route path="/" element={<DashboardPage />} />
           <Route path="/projects" element={<ProjectsPage />} />
           <Route path="/projects/:projectId/:tab?" element={<ProjectPage />} />
+          <Route path="/projects/:projectId/skills/:skillId" element={<SkillPage />} />
           <Route path="/kanban" element={<KanbanPage />} />
           <Route path="/kanban/:storyId" element={<StoryPage />} />
           <Route path="/journal" element={<JournalPage />} />
