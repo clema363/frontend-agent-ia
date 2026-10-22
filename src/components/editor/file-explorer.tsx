@@ -1,17 +1,14 @@
-import { FileTree, useFileTree } from '@pierre/trees/react'
+import { FileTree, useFileTree, useFileTreeSearch } from '@pierre/trees/react'
 import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react'
 import {
   FileCode2,
   FileJson,
   FileText,
-  FolderOpen,
+  Search,
   type LucideIcon,
 } from 'lucide-react'
 import { useEditorAppearance } from '@/hooks/use-editor-appearance'
-import {
-  workspaceRepositories,
-  type WorkspaceFile,
-} from '@/lib/editor-workspace'
+import type { WorkspaceFile } from '@/lib/editor-workspace'
 import { cn } from '@/lib/utils'
 
 export function FileIcon({
@@ -44,10 +41,11 @@ export function FileIcon({
 
 const treeStyle = {
   '--trees-bg-override': 'transparent',
-  '--trees-fg-override':
-    'color-mix(in oklch, var(--foreground) 80%, transparent)',
+  '--trees-fg-override': 'var(--foreground)',
   '--trees-font-family-override': 'var(--font-sans)',
-  '--trees-font-size-override': '12.5px',
+  '--trees-font-size-override': '13px',
+  '--trees-item-margin-x-override': '6px',
+  '--trees-border-radius-override': '8px',
   '--trees-hover-bg-override': 'var(--accent)',
   '--trees-selected-bg-override': 'var(--accent)',
   '--trees-theme-focus-ring': 'var(--ring)',
@@ -67,18 +65,19 @@ export function FileExplorer({
   onOpen: (path: string) => void
 }) {
   const appearance = useEditorAppearance()
-  const repositoryCount = workspaceRepositories(files).length
   const latest = useRef({ onOpen, active, files })
   useEffect(() => {
     latest.current = { onOpen, active, files }
   }, [onOpen, active, files])
   const { model } = useFileTree({
     paths: files.map((file) => file.path),
-    initialExpansion: 'open',
+    initialExpansion: 'closed',
     initialSelectedPaths: active ? [active] : [],
     flattenEmptyDirectories: false,
     search: false,
-    density: 'compact',
+    fileTreeSearchMode: 'hide-non-matches',
+    density: 'default',
+    icons: { set: 'complete', colored: true },
     onSelectionChange(paths) {
       const path = paths.at(-1)
       if (
@@ -102,21 +101,35 @@ export function FileExplorer({
       if (item && !item.isSelected()) item.select()
     }
   }, [active, model])
+  const search = useFileTreeSearch(model)
 
   return (
-    <EditorSidebar
-      label="File explorer"
-      icon={FolderOpen}
-      title={storyKey}
-      meta={
-        <span className="shrink-0 text-[10px] text-muted-foreground">
-          {repositoryCount} demo repo{repositoryCount === 1 ? '' : 's'}
-        </span>
-      }
+    <aside
+      aria-label="File explorer"
+      className="flex min-h-0 w-66 shrink-0 flex-col border-r bg-background"
     >
+      <div className="shrink-0 border-b p-2">
+        <label className="flex h-8 items-center gap-2 rounded-lg border bg-background px-2.5 text-muted-foreground focus-within:border-ring">
+          <Search className="size-4 shrink-0" />
+          <input
+            aria-label="Filter files"
+            placeholder="Search files..."
+            value={search.value}
+            onChange={(event) => search.setValue(event.target.value || null)}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') search.setValue(null)
+              const match = search.matchingPaths.find((path) =>
+                files.some((file) => file.path === path),
+              )
+              if (event.key === 'Enter' && match) onOpen(match)
+            }}
+            className="min-w-0 flex-1 bg-transparent text-[13px] text-foreground outline-none placeholder:text-muted-foreground/70"
+          />
+        </label>
+      </div>
       <nav
-        aria-label="Workspace files"
-        className="relative min-h-0 flex-1 overflow-hidden px-1 py-1"
+        aria-label={`${storyKey} workspace files`}
+        className="relative min-h-0 flex-1 overflow-hidden py-1.5"
       >
         <FileTree
           model={model}
@@ -125,7 +138,7 @@ export function FileExplorer({
           style={{ ...treeStyle, colorScheme: appearance }}
         />
       </nav>
-    </EditorSidebar>
+    </aside>
   )
 }
 
@@ -145,7 +158,7 @@ export function EditorSidebar({
   return (
     <aside
       aria-label={label}
-      className="flex min-h-0 w-56 shrink-0 flex-col border-r bg-background"
+      className="flex min-h-0 w-66 shrink-0 flex-col border-r bg-background"
     >
       <div className="flex h-10 shrink-0 items-center gap-2 border-b px-3">
         <Icon className="size-3.5 shrink-0 text-muted-foreground" />

@@ -4,9 +4,9 @@ The React application exposes `/editor?us=<story-id>` from the sidebar and the i
 
 The current workspace is a frontend demo, provided by `demoWorkspace()` in `src/lib/editor-workspace.ts`. The frontend/backend repositories are illustrative, not repositories discovered on disk or assigned by the API. The documents are copies of the story's stage outputs; editing these copies does not update the original stage documents.
 
-Drafts and explicitly saved snapshots live in browser localStorage, separately for each story (`atlas-editor:v1:<story-id>`). Closing a file and switching stories preserve drafts. Save / Cmd/Ctrl+S marks the current edits as saved. Changes lists modified files with line counts and compares the current text with the original demo file; saving does not clear this diff. Discard restores the original file after confirmation. Storage failures appear in the file header.
+Drafts and explicitly saved snapshots live in browser localStorage, separately for each story (`atlas-editor:v1:<story-id>`). Closing a file and switching stories preserve drafts. Save / Cmd/Ctrl+S marks the current edits as saved. Changes lists modified files with line counts and compares the current text with the last local commit, or the original demo file; saving does not clear this diff. Its commit box (message + Commit, or Cmd/Ctrl+Enter) records the checked changed files (all by default) as one local commit, listed under Commits; after a commit, those files no longer appear as changed. Discard restores the last committed version, or the original, after confirmation. Storage failures appear in the file header.
 
-Review & merge shows the locally changed files and links to the story's existing merge request when available. It does not commit, push, open or merge a request; local demo edits are never sent to GitLab.
+Review & merge shows the locally changed files and links to the story's existing merge request when available. It does not push, open or merge a request; local demo edits are never sent to GitLab.
 
 ## Connecting real workspaces
 
@@ -28,7 +28,8 @@ The browser needs an authenticated backend API to access that server directory. 
 | `GET /us/{id}/workspace/file?repository_id=…&path=…` | File contents, language and revision |
 | `PUT /us/{id}/workspace/file` | Save contents with repository ID, path and expected revision |
 | `GET /us/{id}/workspace/changes` | Git status and diffs grouped by repository |
-| `POST /us/{id}/workspace/repositories/{repo_id}/merge-request` | Commit and push changes, create or update this repository's MR |
+| `POST /us/{id}/workspace/repositories/{repo_id}/commits` | Commit the given files with a message on this repository's branch |
+| `POST /us/{id}/workspace/repositories/{repo_id}/merge-request` | Push commits, create or update this repository's MR |
 | `POST /us/{id}/workspace/repositories/{repo_id}/merge` | Merge this repository's MR after server checks |
 
 Replace the demo adapter and local persistence with API hooks when those endpoints exist. Keep file contents opaque in the HTTP key conversion layer. The server must scope paths to the authorized story/repository, enforce revisions to prevent overwriting agent edits, and report pipeline/conflict status per repository. A multi-repository story has independent merge requests; the interface must display partial completion if one merge fails.

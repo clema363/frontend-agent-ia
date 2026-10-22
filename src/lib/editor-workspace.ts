@@ -1,10 +1,34 @@
 import type { UserStory } from '@/lib/domain'
 
 export type WorkspaceFile = { path: string; content: string }
+export type WorkspaceCommit = {
+  id: string
+  message: string
+  createdAt: string
+  files: Record<string, string>
+}
 export type WorkspaceDraft = {
   drafts: Record<string, string>
   saved: Record<string, string>
+  commits: WorkspaceCommit[]
 }
+
+export const createCommit = (
+  message: string,
+  files: Record<string, string>,
+): WorkspaceCommit => ({
+  id: crypto.randomUUID().replaceAll('-', '').slice(0, 7),
+  message,
+  createdAt: new Date().toISOString(),
+  files,
+})
+
+// Latest committed content per path; files absent here use the demo original.
+export const committedFiles = (commits: WorkspaceCommit[]) =>
+  Object.assign({}, ...commits.map((commit) => commit.files)) as Record<
+    string,
+    string
+  >
 
 // Sample repositories only. Replace this adapter with the story workspace API.
 export function demoWorkspace(story: UserStory): WorkspaceFile[] {
@@ -71,9 +95,28 @@ export function readWorkspaceDraft(storyId: string): WorkspaceDraft {
             ),
           )
         : {}
-    return { drafts: strings(value?.drafts), saved: strings(value?.saved) }
+    const commits: WorkspaceCommit[] = Array.isArray(value?.commits)
+      ? value.commits
+          .filter(
+            (commit: Partial<WorkspaceCommit> | null) =>
+              typeof commit?.id === 'string' &&
+              typeof commit.message === 'string' &&
+              typeof commit.createdAt === 'string',
+          )
+          .map((commit: WorkspaceCommit) => ({
+            id: commit.id,
+            message: commit.message,
+            createdAt: commit.createdAt,
+            files: strings(commit.files),
+          }))
+      : []
+    return {
+      drafts: strings(value?.drafts),
+      saved: strings(value?.saved),
+      commits,
+    }
   } catch {
-    return { drafts: {}, saved: {} }
+    return { drafts: {}, saved: {}, commits: [] }
   }
 }
 

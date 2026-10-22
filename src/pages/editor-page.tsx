@@ -15,6 +15,7 @@ import {
   Code2,
   Files,
   GitBranch,
+  GitCommitHorizontal,
   GitCompareArrows,
   GitMerge,
   RotateCcw,
@@ -31,6 +32,7 @@ import {
 } from '@/components/editor/file-explorer'
 import { PageHeader } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
   DialogContent,
@@ -47,6 +49,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import {
+  committedFiles,
+  createCommit,
   demoWorkspace,
   fileLanguage,
   readWorkspaceDraft,
@@ -254,17 +258,33 @@ function StoryWorkspace({
   const [resetPath, setResetPath] = useState<string>()
   const [storageError, setStorageError] = useState(false)
   const [cursor, setCursor] = useState({ line: 1, column: 1 })
+  const [message, setMessage] = useState('')
+  // Changed files are staged by default; unchecking one leaves it out of the next commit.
+  const [unstaged, setUnstaged] = useState<Set<string>>(() => new Set())
   const file = files.find((item) => item.path === active)
-  const content = (path: string) =>
-    local.drafts[path] ??
-    files.find((item) => item.path === path)?.content ??
-    ''
+  const committed = useMemo(() => committedFiles(local.commits), [local.commits])
+  // Changes and discards compare against the last local commit, then the demo original.
+  const baseline = (path: string) =>
+    committed[path] ?? files.find((item) => item.path === path)?.content ?? ''
+  const content = (path: string) => local.drafts[path] ?? baseline(path)
   const modifiedFiles = files.filter(
-    (item) => content(item.path) !== item.content,
+    (item) => content(item.path) !== baseline(item.path),
   )
   const modified = new Set(modifiedFiles.map((item) => item.path))
+  const staged = modifiedFiles.filter((item) => !unstaged.has(item.path))
+  function stage(paths: string[], checked: boolean) {
+    setUnstaged((current) => {
+      const next = new Set(current)
+      for (const path of paths) {
+        if (checked) next.delete(path)
+        else next.add(path)
+      }
+      return next
+    })
+  }
   const unsaved = files.filter(
-    (item) => content(item.path) !== (local.saved[item.path] ?? item.content),
+    (item) =>
+      content(item.path) !== (local.saved[item.path] ?? baseline(item.path)),
   )
   const value = file ? content(file.path) : ''
   const dirty = file ? unsaved.includes(file) : false
@@ -294,6 +314,23 @@ function StoryWorkspace({
     () => persist({ ...local, saved: { ...local.drafts } }),
     [local, persist],
   )
+  function commit() {
+    if (!message.trim() || !staged.length) return
+    const drafts = { ...local.drafts }
+    const saved = { ...local.saved }
+    const changes: Record<string, string> = {}
+    for (const item of staged) {
+      changes[item.path] = content(item.path)
+      delete drafts[item.path]
+      delete saved[item.path]
+    }
+    persist({
+      drafts,
+      saved,
+      commits: [...local.commits, createCommit(message.trim(), changes)],
+    })
+    setMessage('')
+  }
   function open(path: string) {
     setActive(path)
     setCursor({ line: 1, column: 1 })
@@ -412,25 +449,112 @@ function StoryWorkspace({
                 )
               }
             >
-              <div className="min-h-0 flex-1 overflow-auto p-1">
-                {modifiedFiles.map((item) => (
-                  <FileRow
-                    key={item.path}
-                    path={item.path}
-                    selected={active === item.path}
-                    onOpen={open}
-                    trailing={
-                      <DiffStat
-                        before={item.content}
-                        after={content(item.path)}
-                      />
+              <form
+                aria-label="Commit changes"
+                className="shrink-0 space-y-2 border-b p-2"
+                onSubmit={(event) => {
+                  event.preventDefault()
+                  commit()
+                }}
+              >
+                <textarea
+                  aria-label="Commit message"
+                  placeholder="Commit message"
+                  rows={2}
+                  value={message}
+                  onChange={(event) => setMessage(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (
+                      event.key === 'Enter' &&
+                      (event.metaKey || event.ctrlKey)
+                    ) {
+                      event.preventDefault()
+                      commit()
                     }
-                  />
+                  }}
+                  className="block w-full resize-none rounded-lg border bg-background px-2.5 py-1.5 text-[13px] outline-none placeholder:text-muted-foreground/70 focus:border-ring"
+                />
+                <Button
+                  type="submit"
+                  size="sm"
+                  className="w-full"
+                  disabled={!message.trim() || !staged.length}
+                  title="Commit the checked files (Cmd/Ctrl+Enter)"
+                >
+                  <GitCommitHorizontal />
+                  Commit
+                  {staged.length
+                    ? ` ${staged.length} file${staged.length === 1 ? '' : 's'}`
+                    : ''}
+                </Button>
+              </form>
+              <div className="min-h-0 flex-1 overflow-auto p-1">
+                {modified.size > 0 && (
+                  <label className="flex h-7 items-center gap-2 px-2 text-[11px] text-muted-foreground">
+                    <Checkbox
+                      aria-label="Select all changed files"
+                      checked={staged.length === modified.size}
+                      indeterminate={
+                        staged.length > 0 && staged.length < modified.size
+                      }
+                      onCheckedChange={(checked) =>
+                        stage([...modified], checked)
+                      }
+                    />
+                    {staged.length} of {modified.size} selected
+                  </label>
+                )}
+                {modifiedFiles.map((item) => (
+                  <div key={item.path} className="flex items-center gap-1 pl-2">
+                    <Checkbox
+                      aria-label={`Include ${item.path} in commit`}
+                      checked={!unstaged.has(item.path)}
+                      onCheckedChange={(checked) => stage([item.path], checked)}
+                    />
+                    <FileRow
+                      path={item.path}
+                      selected={active === item.path}
+                      onOpen={open}
+                      trailing={
+                        <DiffStat
+                          before={baseline(item.path)}
+                          after={content(item.path)}
+                        />
+                      }
+                    />
+                  </div>
                 ))}
                 {!modified.size && (
                   <p className="px-3 py-6 text-center text-xs leading-5 text-muted-foreground">
                     No changes yet. Edit a file to see its diff here.
                   </p>
+                )}
+                {local.commits.length > 0 && (
+                  <section aria-label="Local commits" className="mt-2 border-t pt-2">
+                    <h3 className="px-2 pb-1 text-[11px] font-medium text-muted-foreground">
+                      Commits
+                    </h3>
+                    {[...local.commits].reverse().map((item) => (
+                      <div
+                        key={item.id}
+                        className="flex items-start gap-2 rounded-md px-2 py-1.5 text-xs"
+                        title={Object.keys(item.files).join('\n')}
+                      >
+                        <GitCommitHorizontal className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate font-medium">
+                            {item.message}
+                          </span>
+                          <span className="block text-[11px] text-muted-foreground">
+                            <span className="font-mono">{item.id}</span> ·{' '}
+                            {Object.keys(item.files).length} file
+                            {Object.keys(item.files).length === 1 ? '' : 's'} ·{' '}
+                            {new Date(item.createdAt).toLocaleString()}
+                          </span>
+                        </span>
+                      </div>
+                    ))}
+                  </section>
                 )}
               </div>
             </EditorSidebar>
@@ -481,7 +605,7 @@ function StoryWorkspace({
                 </nav>
                 {mode === 'changes' && (
                   <span className="hidden shrink-0 text-[11px] text-muted-foreground/70 sm:inline">
-                    Diff vs. original
+                    {local.commits.length ? 'Diff vs. last commit' : 'Diff vs. original'}
                   </span>
                 )}
                 <span
@@ -541,7 +665,7 @@ function StoryWorkspace({
                   >
                     <CodeDiff
                       path={file.path}
-                      before={file.content}
+                      before={baseline(file.path)}
                       after={value}
                     />
                   </Suspense>
@@ -614,9 +738,10 @@ function StoryWorkspace({
           <DialogHeader>
             <DialogTitle>Review changes · {story.key}</DialogTitle>
             <DialogDescription>
-              {modified.size} changed file{modified.size === 1 ? '' : 's'}{' '}
-              across this demo workspace. These changes have not been committed
-              or pushed.
+              {modified.size} uncommitted file{modified.size === 1 ? '' : 's'}{' '}
+              and {local.commits.length} local commit
+              {local.commits.length === 1 ? '' : 's'} in this demo workspace.
+              Nothing has been pushed.
             </DialogDescription>
           </DialogHeader>
           <div className="max-h-60 space-y-2 overflow-auto">
@@ -686,8 +811,12 @@ function StoryWorkspace({
           <DialogHeader>
             <DialogTitle>Discard changes?</DialogTitle>
             <DialogDescription>
-              Restore {resetPath} to its demo original. Both the draft and the
-              locally saved changes to this file will be removed.
+              Restore {resetPath} to its{' '}
+              {resetPath && committed[resetPath] !== undefined
+                ? 'last committed version'
+                : 'demo original'}
+              . Uncommitted drafts and saved changes to this file will be
+              removed.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -702,7 +831,7 @@ function StoryWorkspace({
                   const saved = { ...local.saved }
                   delete drafts[resetPath]
                   delete saved[resetPath]
-                  persist({ drafts, saved })
+                  persist({ ...local, drafts, saved })
                   setFileRevisions((current) => ({
                     ...current,
                     [resetPath]: (current[resetPath] ?? 0) + 1,
