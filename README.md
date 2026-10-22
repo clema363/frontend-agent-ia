@@ -71,6 +71,8 @@ The `@/` alias points to `src/`. TypeScript runs in strict mode.
 
 The frontend runs on its own in demo mode. API calls target an external FastAPI backend; this repository does not contain the backend. The Profile page displays the signed-in account and its projects, and allows changing its role through `PATCH /auth/me`.
 
+The React app also includes an **Editor** view at `/editor?us=<story-id>`, accessible from the sidebar and issue pages. It groups demo repositories and story documents in a file explorer, with Pierre (`@pierre/trees` and `@pierre/diffs`) for file browsing, editing and diffs, plus local drafts and file tabs. File access and Git operations still require backend endpoints; see [the workspace integration notes](docs/editor-workspace.md).
+
 To add a component:
 
 ```sh

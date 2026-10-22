@@ -9,6 +9,7 @@ import {
   SquareKanban,
   User,
   Loader,
+  Code2,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -27,6 +28,7 @@ const navItems = [
   { title: 'Dashboard', to: '/', icon: LayoutDashboard },
   { title: 'Projects', to: '/projects', icon: FolderOpen },
   { title: 'Kanban', to: '/kanban', icon: SquareKanban },
+  { title: 'Editor', to: '/editor', icon: Code2 },
   { title: 'Journal', to: '/journal', icon: ScrollText },
   { title: 'Settings', to: '/settings', icon: Settings },
 ]

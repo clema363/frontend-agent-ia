@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react'
 import { Link, useLocation, useParams } from 'react-router'
 import { useAppDispatch } from '@/lib/store'
 import { atlasApi, toApiError } from '@/api/rtk-api'
-import { ArrowLeft, FolderOpen, SquareKanban, Tag, User } from 'lucide-react'
+import { ArrowLeft, Code2, FolderOpen, SquareKanban, Tag, User } from 'lucide-react'
 import { useFieldConfig, useMe, useProjects, useStories, useStoryMutations } from '@/api/hooks'
 import { MergeRequest } from '@/components/kanban/coding-agent'
 import { ColumnIcon, IssueTypeIcon, PriorityIcon } from '@/components/kanban/issue-meta'
@@ -57,10 +57,18 @@ export function StoryPage() {
         parent={{ label: 'Kanban', to: returnTo }}
         detail={story && { text: story.title, visible: titleHidden }}
         actions={
-          <Button variant="ghost" size="sm" nativeButton={false} render={<Link to={returnTo} />}>
-            <ArrowLeft data-icon="inline-start" />
-            Back to Kanban
-          </Button>
+          <>
+            {story && (
+              <Button variant="outline" size="sm" nativeButton={false} render={<Link to={`/editor?us=${story.id}`} />}>
+                <Code2 data-icon="inline-start" />
+                Open editor
+              </Button>
+            )}
+            <Button variant="ghost" size="sm" nativeButton={false} render={<Link to={returnTo} />}>
+              <ArrowLeft data-icon="inline-start" />
+              Back to Kanban
+            </Button>
+          </>
         }
       />
       {error && <Alert variant="destructive" className="mb-6"><AlertDescription>{error}</AlertDescription></Alert>}

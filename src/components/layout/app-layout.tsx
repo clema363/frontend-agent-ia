@@ -16,12 +16,21 @@ export function AppLayout() {
         <SidebarInset className="min-h-0 min-w-0 overflow-hidden md:peer-data-[variant=inset]:border md:peer-data-[variant=inset]:shadow-none">
           <PageHeaderContext.Provider value={headerContainer}>
             <div ref={setHeaderContainer} className="relative z-10 shrink-0 bg-background" />
-            <div className="min-h-0 flex-1 overflow-auto overscroll-contain px-6 pt-6 pb-10">
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
               <Outlet />
             </div>
           </PageHeaderContext.Provider>
         </SidebarInset>
       </SidebarProvider>
     </TooltipProvider>
+  )
+}
+
+// Padded, scrollable content area for regular pages. Full-bleed pages (Editor) sit outside it.
+export function ScrollableContent() {
+  return (
+    <div className="min-h-0 flex-1 overflow-auto overscroll-contain px-6 pt-6 pb-10">
+      <Outlet />
+    </div>
   )
 }
