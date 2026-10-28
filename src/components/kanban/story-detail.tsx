@@ -4,13 +4,13 @@ import {
   Bot,
   CircleCheck,
   ExternalLink,
-  Loader,
   MessageCircleQuestion,
   MessageSquareText,
   Pencil,
 } from 'lucide-react'
 import { QuestionPrompt } from '@/components/ai/question-prompt'
 import { OpencodeSession } from '@/components/kanban/opencode-session'
+import { AgentActivity } from '@/components/kanban/agent-activity'
 import { ApproveStoryDialog } from '@/components/kanban/approve-story-dialog'
 import { IssueTypeIcon, PriorityIcon } from '@/components/kanban/issue-meta'
 import { Markdown } from '@/components/markdown'
@@ -187,15 +187,13 @@ export function StoryDetail({ story, role, approving = false, answering = false,
           {clarification?.answers && <ClarificationSummary clarification={clarification} />}
 
           {opencodeStep ? (
-            <AgentWorking agent="OpenCode" isCurrent={false} />
+            <NotReached />
           ) : asking ? (
-            // The agent waits for context before writing; its questions are docked at the bottom.
-            <div className="flex items-start gap-2 text-sm">
-              <Bot className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-              <Markdown>{asking.intro ?? 'A few questions before the first draft.'}</Markdown>
-            </div>
+            // Same outline as while the agent writes, so nothing moves once the answers are sent.
+            // The questions themselves are docked at the bottom.
+            <AgentActivity stageId={stageTab} waiting />
           ) : !output ? (
-            <AgentWorking agent={stage.agent} isCurrent={isCurrent} />
+            isCurrent ? <AgentActivity stageId={stageTab} /> : <NotReached />
           ) : (
             <>
               <section className="space-y-2">
@@ -381,19 +379,8 @@ function ClarificationSummary({ clarification }: { clarification: StoryClarifica
   )
 }
 
-function AgentWorking({ agent, isCurrent }: { agent: string; isCurrent: boolean }) {
-  return (
-    <p className="flex items-center justify-center gap-2 rounded-lg border border-dashed p-8 text-muted-foreground">
-      {isCurrent ? (
-        <>
-          <Loader className="size-4 animate-spin" aria-hidden="true" />
-          {agent} is working on this step…
-        </>
-      ) : (
-        'The story has not reached this step yet.'
-      )}
-    </p>
-  )
+function NotReached() {
+  return <p className="flex items-center justify-center rounded-lg border border-dashed p-8 text-muted-foreground">The story has not reached this step yet.</p>
 }
 
 type StoryReviewProps = {

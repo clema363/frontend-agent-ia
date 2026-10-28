@@ -141,7 +141,7 @@ function answerQuestions(usId: string, clarificationId: string, answers: AgentAn
   if (item.clarification?.id !== clarificationId || item.clarification.answers) throw new ApiError(409, JSON.stringify({ detail: 'No pending questions' }))
   item.clarification.answers = answers
   log(item, answers.length ? 'answered questions' : 'skipped questions')
-  window.setTimeout(() => fillCurrentStage(item), 1500)
+  window.setTimeout(() => fillCurrentStage(item), 6000)
   return item
 }
 

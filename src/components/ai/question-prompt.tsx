@@ -33,7 +33,7 @@ const itemName = (index: number) => `q${index}`
 // A stage agent's questions, docked above the composer like ChatGPT's: one compact question
 // at a time, built on shadcn's Questionnaire (number shortcuts, Enter, skip, free answer).
 export function QuestionPrompt({ agent, questions, pending = false, onSubmit, onSkipAll }: QuestionPromptProps) {
-  const items = questions.map((question, index) => ({ name: itemName(index), choices: question.options.map((option) => ({ value: option.label })) }))
+  const items = questions.map((question, index) => ({ name: itemName(index), disabled: pending, choices: question.options.map((option) => ({ value: option.label })) }))
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
