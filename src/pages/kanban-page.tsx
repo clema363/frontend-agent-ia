@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Navigate, useNavigate, useSearchParams } from 'react-router'
-import { Bot, CircleCheck, Columns3, Filter, FolderOpen, List, Loader, MessageSquareText, SquareKanban, TriangleAlert, X } from 'lucide-react'
+import { Bot, CircleCheck, Columns3, Filter, FolderOpen, List, Loader, MessageCircleQuestion, MessageSquareText, SquareKanban, TriangleAlert, X } from 'lucide-react'
 import { CodingAgentChip } from '@/components/kanban/coding-agent'
 import { ColumnIcon, IssueTypeIcon, PriorityIcon } from '@/components/kanban/issue-meta'
 import { NewStoryDialog, type NewStoryInput } from '@/components/kanban/new-story-dialog'
@@ -362,6 +362,12 @@ function StoryIndicators({ story, mine, comments }: Omit<StoryItemProps, 'onOpen
 
   return (
     <>
+      {status === 'needs-input' && (
+        <span className="flex items-center gap-1 rounded-full bg-primary/10 px-1.5 py-px text-xs text-primary" title={`${stage?.agent} has questions for you`}>
+          <MessageCircleQuestion className="size-3.5" aria-hidden="true" />
+          Questions
+        </span>
+      )}
       {status === 'agent-working' && (
         <span className="flex items-center gap-1 text-xs text-muted-foreground" title={`${stage?.agent} is working`}>
           <Loader className="size-3.5 animate-spin" aria-hidden="true" />

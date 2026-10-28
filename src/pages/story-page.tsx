@@ -35,6 +35,12 @@ export function StoryPage() {
     onApprove: (id) => { void mutations.decide.trigger({ id, decision: 'approve' }).unwrap().then(onSuccess).catch(onError) },
     onComment: (id, comment) => { void mutations.decide.trigger({ id, decision: 'refuse', comment }).unwrap().then(onSuccess).catch(onError) },
     onChat: (id, message) => { void mutations.sendMessage.trigger({ id, message }).unwrap().then(onSuccess).catch(onError) },
+    onAnswer: (id, clarificationId, answers) => {
+      const request = answers.length
+        ? mutations.answerQuestions.trigger({ id, clarificationId, answers })
+        : mutations.skipQuestions.trigger({ id, clarificationId })
+      void request.unwrap().then(onSuccess).catch(onError)
+    },
     // Document edits remain local until a server save endpoint is available.
     onEdit: (id, stageId, markdown) => {
       dispatch(atlasApi.util.updateQueryData('getStories', undefined, (list) => {
@@ -88,6 +94,7 @@ export function StoryPage() {
               story={story}
               role={role}
               approving={mutations.decide.isLoading}
+              answering={mutations.answerQuestions.isLoading || mutations.skipQuestions.isLoading}
               onEditingChange={setEditing}
               onTitleHiddenChange={setTitleHidden}
               {...actions}

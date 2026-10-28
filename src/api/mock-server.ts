@@ -2,7 +2,7 @@
 // and keep changes in memory so the UI responds. Business rules
 // such as permissions, duplicates and approvals belong to the real backend.
 // Reloading the page resets the data.
-import type { AppUser, Connection, ContextMap, FieldConfig, JournalEntry, Me, OpencodeMessage, Project, ProjectMember, Settings, SourceTool, UserStory } from '@/lib/domain'
+import type { AgentAnswers, AppUser, Connection, ContextMap, FieldConfig, JournalEntry, Me, OpencodeMessage, Project, ProjectMember, Settings, SourceTool, UserStory } from '@/lib/domain'
 import { nextColumn, stageForColumn } from '@/lib/story-workflow'
 import { ApiError, toCamel, toSnake, type Method } from './client'
 import { abortOpencode, codingScript, planScript, replyScript, runOpencode } from './mock-opencode'
@@ -72,7 +72,7 @@ function log(item: UserStory, action: string, detail?: string) {
 function fillCurrentStage(item: UserStory) {
   const stage = stageForColumn(item.column)
   if (!stage || item.stages[stage.id]) return
-  const markdown = `## ${item.title}\n\n_Mock document (${stage.agent})._\n\n${item.raw}`
+  const markdown = `## ${item.title}\n\n_Mock document (${stage.agent})._\n\n${item.raw}${clarificationMarkdown(item, stage.id)}`
   if (stage.id !== 'plan') {
     item.stages[stage.id] = { markdown, sources: [], chat: [] }
     return
@@ -85,6 +85,64 @@ function fillCurrentStage(item: UserStory) {
     script: planScript(item, plan),
     onDone: () => (item.stages.plan = { markdown: plan, sources: [], chat: [] }),
   })
+}
+
+// Stand in for the authoring agent: before the first draft, it asks for the context
+// the raw requirement leaves out. The draft is written once the questions are answered or skipped.
+function askAuthoringQuestions(item: UserStory) {
+  item.clarification = {
+    id: newId('q'),
+    stage: 'authoring',
+    intro: 'Before I write the first draft, a few questions so the story starts with the right context.',
+    questions: [
+      {
+        header: 'Users',
+        question: 'Who will use this feature?',
+        multiple: true,
+        options: [
+          { label: 'Treasurers', description: 'Follow cash positions and payments day to day.' },
+          { label: 'Accountants', description: 'Reconcile and close the books.' },
+          { label: 'Administrators', description: 'Configure accounts, rights and connections.' },
+        ],
+      },
+      {
+        header: 'Value',
+        question: 'What should it change for them first?',
+        options: [
+          { label: 'Save time', description: 'Remove a manual or repetitive task.' },
+          { label: 'Reduce errors', description: 'Catch mistakes before they reach the bank.' },
+          { label: 'Compliance', description: 'Keep an audit trail or meet a regulation.' },
+        ],
+      },
+      {
+        header: 'Scope',
+        question: 'How large should the first version be?',
+        options: [
+          { label: 'Minimal', description: 'The smallest useful slice; the rest goes in follow-up stories.' },
+          { label: 'Complete', description: 'The whole need in one story.' },
+          { label: 'Spike first', description: 'Investigate feasibility before committing to a design.' },
+        ],
+      },
+    ],
+  }
+}
+
+// What the PO answered, appended to the documents the agent writes for that stage.
+function clarificationMarkdown(item: UserStory, stageId: string) {
+  const clarification = item.clarification
+  if (clarification?.stage !== stageId || !clarification.answers?.length) return ''
+  const lines = clarification.questions.map((question, index) => `- **${question.header}**: ${(clarification.answers?.[index] ?? []).join(', ') || '—'}`)
+  return `\n\n### Context from the author\n\n${lines.join('\n')}`
+}
+
+// The agent writes its draft a moment after the answers arrive; the board polls meanwhile.
+function answerQuestions(usId: string, clarificationId: string, answers: AgentAnswers) {
+  const item = story(usId)
+  if (item.clarification?.id !== clarificationId || item.clarification.answers) throw new ApiError(409, JSON.stringify({ detail: 'No pending questions' }))
+  item.clarification.answers = answers
+  log(item, answers.length ? 'answered questions' : 'skipped questions')
+  window.setTimeout(() => fillCurrentStage(item), 1500)
+  return item
 }
 
 // Approving the plan hands the session to the build agent; the merge request opens when it is done.
@@ -156,7 +214,7 @@ const routes: Record<string, Handler> = {
       contextLinks: [],
       stages: {},
     }
-    fillCurrentStage(created)
+    askAuthoringQuestions(created)
     db.us.unshift(created)
     return created
   },
@@ -177,6 +235,9 @@ const routes: Record<string, Handler> = {
     }
     return item
   },
+  'POST /us/{us_id}/questions/{question_id}/answer': ({ us_id, question_id }, body: { answers: AgentAnswers }) =>
+    answerQuestions(us_id, question_id, body.answers),
+  'POST /us/{us_id}/questions/{question_id}/skip': ({ us_id, question_id }) => answerQuestions(us_id, question_id, []),
   'POST /us/{us_id}/messages': ({ us_id }, body: { message: string }) => {
     const item = story(us_id)
     log(item, 'message', body.message)

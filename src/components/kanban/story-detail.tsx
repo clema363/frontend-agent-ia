@@ -5,9 +5,11 @@ import {
   CircleCheck,
   ExternalLink,
   Loader,
+  MessageCircleQuestion,
   MessageSquareText,
   Pencil,
 } from 'lucide-react'
+import { QuestionPrompt } from '@/components/ai/question-prompt'
 import { OpencodeSession } from '@/components/kanban/opencode-session'
 import { ApproveStoryDialog } from '@/components/kanban/approve-story-dialog'
 import { IssueTypeIcon, PriorityIcon } from '@/components/kanban/issue-meta'
@@ -20,8 +22,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { diffLines } from '@/lib/diff'
 import { planVersions } from '@/lib/opencode'
 import { useJournal, useOpencodeMessages, useSettings } from '@/api/hooks'
-import { kanbanColumns, opencodeSteps, stages, type KanbanColumnId, type OpencodeStepId, type Role, type StageId, type StageOutput, type UserStory } from '@/lib/domain'
-import { stageForColumn } from '@/lib/story-workflow'
+import { kanbanColumns, opencodeSteps, stages, type AgentAnswers, type KanbanColumnId, type OpencodeStepId, type Role, type StageId, type StageOutput, type StoryClarification, type UserStory } from '@/lib/domain'
+import { awaitingAnswers, stageForColumn } from '@/lib/story-workflow'
 import { cn, scrollParent, timeAgo } from '@/lib/utils'
 
 // One tab per step: the document stages, then the OpenCode steps (plan, coding).
@@ -56,19 +58,23 @@ export type StoryActions = {
   onComment: (storyId: string, comment: string) => void
   onEdit: (storyId: string, stageId: StageId, markdown: string) => void
   onChat: (storyId: string, message: string) => void
+  // Answers to the stage agent's questions; an empty list skips them.
+  onAnswer: (storyId: string, clarificationId: string, answers: AgentAnswers) => void
 }
 
 type StoryDetailProps = StoryActions & {
   story: UserStory
   role: Role
   approving?: boolean
+  // The answers to the agent's questions are being sent.
+  answering?: boolean
   // Lets the page block approval while the document has unsaved edits.
   onEditingChange?: (editing: boolean) => void
   // The title has scrolled away: the page header shows it instead.
   onTitleHiddenChange?: (hidden: boolean) => void
 }
 
-export function StoryDetail({ story, role, approving = false, onEditingChange, onTitleHiddenChange, ...actions }: StoryDetailProps) {
+export function StoryDetail({ story, role, approving = false, answering = false, onEditingChange, onTitleHiddenChange, ...actions }: StoryDetailProps) {
   const currentStage = stageForColumn(story.column)
   const jiraUrl = useSettings().data?.jiraUrl
   const currentTab: Tab = currentStage?.id ?? opencodeSteps.find((item) => item.column === story.column)?.id ?? 'plan'
@@ -87,6 +93,8 @@ export function StoryDetail({ story, role, approving = false, onEditingChange, o
   const isCurrent = currentTab === tab
   const canValidate = stage.approvers.includes(role)
   const previousOutput = tab === 'refinement' ? story.stages.authoring : undefined
+  const clarification = story.clarification?.stage === stageTab ? story.clarification : undefined
+  const asking = isCurrent && awaitingAnswers(story) ? clarification : undefined
 
   useEffect(() => {
     onTitleHiddenChange?.(titleHidden)
@@ -176,9 +184,16 @@ export function StoryDetail({ story, role, approving = false, onEditingChange, o
       ) : (
         <div className="min-h-0 flex-1 space-y-6 pb-8">
           {tab === 'authoring' && <RawInput story={story} />}
+          {clarification?.answers && <ClarificationSummary clarification={clarification} />}
 
           {opencodeStep ? (
             <AgentWorking agent="OpenCode" isCurrent={false} />
+          ) : asking ? (
+            // The agent waits for context before writing; its questions are docked at the bottom.
+            <div className="flex items-start gap-2 text-sm">
+              <Bot className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+              <Markdown>{asking.intro ?? 'A few questions before the first draft.'}</Markdown>
+            </div>
           ) : !output ? (
             <AgentWorking agent={stage.agent} isCurrent={isCurrent} />
           ) : (
@@ -256,6 +271,20 @@ export function StoryDetail({ story, role, approving = false, onEditingChange, o
         </div>
       )}
 
+      {asking && (
+        // Docked where the composer sits, so the questions stay in reach while the page scrolls.
+        <div className="sticky -bottom-10 z-10 -mb-10 mt-auto bg-linear-to-t from-background from-75% to-transparent pt-6 pb-3">
+          <QuestionPrompt
+            key={asking.id}
+            agent={stage.agent}
+            questions={asking.questions}
+            pending={answering}
+            onSubmit={(answers) => actions.onAnswer(story.id, asking.id, answers)}
+            onSkipAll={() => actions.onAnswer(story.id, asking.id, [])}
+          />
+        </div>
+      )}
+
       {output && isCurrent && (
         // Pinned to the bottom of the page scroller, like a chat composer.
         // Sticky offsets start inside the scroller's pb-10, so -bottom-10 and
@@ -309,6 +338,45 @@ function RawInput({ story }: { story: UserStory }) {
           ))}
         </ul>
       )}
+    </section>
+  )
+}
+
+// What the author told the agent before the draft: one line per question.
+function ClarificationSummary({ clarification }: { clarification: StoryClarification }) {
+  const answers = clarification.answers ?? []
+  if (!answers.length)
+    return (
+      <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <MessageCircleQuestion className="size-3.5" aria-hidden="true" />
+        Questions skipped: the agent drafted from the raw input only.
+      </p>
+    )
+
+  return (
+    <section className="space-y-2 rounded-lg border p-3">
+      <h3 className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+        <MessageCircleQuestion className="size-3.5" aria-hidden="true" />
+        Context given to the agent
+      </h3>
+      <dl className="space-y-2 text-sm">
+        {clarification.questions.map((question, index) => (
+          <div key={question.header + index} className="grid gap-1 sm:grid-cols-[6rem_1fr] sm:gap-3">
+            <dt className="text-xs font-medium text-muted-foreground sm:pt-0.5">{question.header}</dt>
+            <dd className="space-y-1">
+              <p className="text-muted-foreground">{question.question}</p>
+              <p className="flex flex-wrap gap-1">
+                {(answers[index] ?? []).map((answer) => (
+                  <span key={answer} className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 py-px text-xs text-primary">
+                    <CircleCheck className="size-3" aria-hidden="true" />
+                    {answer}
+                  </span>
+                ))}
+              </p>
+            </dd>
+          </div>
+        ))}
+      </dl>
     </section>
   )
 }

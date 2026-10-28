@@ -1,6 +1,6 @@
 import type { NewConnection, OpencodeMessage, SourceTool, UserStory } from '@/lib/domain'
 import { useAppSelector } from '@/lib/store'
-import { stageForColumn } from '@/lib/story-workflow'
+import { awaitingAnswers, stageForColumn } from '@/lib/story-workflow'
 import { api } from './endpoints'
 import { atlasApi } from './rtk-api'
 
@@ -18,7 +18,7 @@ export const useTestAi = () => mutation(atlasApi.useTestAiMutation())
 const selectStories = atlasApi.endpoints.getStories.select()
 const agentIsWorking = (story: UserStory) => {
   const stage = stageForColumn(story.column)
-  return Boolean(stage && !story.stages[stage.id])
+  return Boolean(stage && !story.stages[stage.id] && !awaitingAnswers(story))
 }
 
 export function useStories() {
@@ -65,6 +65,8 @@ export function useStoryMutations() {
     create: mutation(atlasApi.useCreateStoryMutation()),
     decide: mutation(atlasApi.useDecideStoryMutation()),
     sendMessage: mutation(atlasApi.useSendMessageMutation()),
+    answerQuestions: mutation(atlasApi.useAnswerQuestionsMutation()),
+    skipQuestions: mutation(atlasApi.useSkipQuestionsMutation()),
   }
 }
 

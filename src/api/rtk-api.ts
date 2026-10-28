@@ -1,5 +1,5 @@
 import { createApi, fakeBaseQuery } from '@reduxjs/toolkit/query/react'
-import type { Me, NewConnection, SourceTool } from '@/lib/domain'
+import type { AgentAnswers, Me, NewConnection, SourceTool } from '@/lib/domain'
 import type { RootState } from '@/lib/store'
 import { api } from './endpoints'
 import { ApiError } from './client'
@@ -116,6 +116,14 @@ export const atlasApi = createApi({
     decideStory: build.mutation<Awaited<ReturnType<typeof api.us.decide>>, { id: string } & Parameters<typeof api.us.decide>[1]>({
       queryFn: ({ id, ...body }) => execute(() => api.us.decide(id, body)),
       invalidatesTags: ['Stories', 'Projects', 'Journal', 'Stats'],
+    }),
+    answerQuestions: build.mutation<Awaited<ReturnType<typeof api.us.answerQuestions>>, { id: string; clarificationId: string; answers: AgentAnswers }>({
+      queryFn: (arg) => execute(() => api.us.answerQuestions(arg.id, arg.clarificationId, arg.answers)),
+      invalidatesTags: ['Stories', 'Journal'],
+    }),
+    skipQuestions: build.mutation<Awaited<ReturnType<typeof api.us.skipQuestions>>, { id: string; clarificationId: string }>({
+      queryFn: (arg) => execute(() => api.us.skipQuestions(arg.id, arg.clarificationId)),
+      invalidatesTags: ['Stories', 'Journal'],
     }),
     sendMessage: build.mutation<Awaited<ReturnType<typeof api.us.sendMessage>>, { id: string; message: string }>({
       queryFn: (arg) => execute(() => api.us.sendMessage(arg.id, arg.message)),

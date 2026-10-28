@@ -1,6 +1,7 @@
 // One function per FastAPI backend route (backend docs/api-routes.html or localhost:8000/docs).
 // Request bodies use camelCase; client.ts converts them to snake_case.
 import type {
+  AgentAnswers,
   AppUser,
   ConfluencePage,
   ConfluenceSpace,
@@ -58,6 +59,10 @@ export const api = {
     // Rejection requires a comment.
     decide: (id: string, body: { decision: 'approve' | 'refuse'; comment?: string }) =>
       request<UserStory>('POST', `/us/${id}/decide`, body),
+    // Answers the stage agent's questions; skipping lets it write with the raw requirement only.
+    answerQuestions: (id: string, clarificationId: string, answers: AgentAnswers) =>
+      request<UserStory>('POST', `/us/${id}/questions/${clarificationId}/answer`, { answers }),
+    skipQuestions: (id: string, clarificationId: string) => request<UserStory>('POST', `/us/${id}/questions/${clarificationId}/skip`),
     sendMessage: (id: string, message: string) => request<UserStory>('POST', `/us/${id}/messages`, { message }),
     finalize: (id: string) => request<UserStory>('POST', `/us/${id}/finalize`),
     saveFields: (id: string, fields: Record<string, unknown>) => request<UserStory>('PUT', `/us/${id}/fields`, { fields }),
