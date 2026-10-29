@@ -6,6 +6,7 @@ import type { AgentAnswers, AppUser, Connection, ContextMap, FieldConfig, Journa
 import { nextColumn, stageForColumn } from '@/lib/story-workflow'
 import { ApiError, toCamel, toSnake, type Method } from './client'
 import { abortOpencode, codingScript, planScript, replyScript, runOpencode } from './mock-opencode'
+import agents from './fixtures/agents.json'
 import confluencePages from './fixtures/confluence-pages.json'
 import confluenceSpaces from './fixtures/confluence-spaces.json'
 import connections from './fixtures/connections.json'
@@ -188,6 +189,7 @@ const connectionRoutes = (tool: SourceTool, prefix: string): Record<string, Hand
 const routes: Record<string, Handler> = {
   'GET /health': () => health,
   'GET /health-db': () => ({ status: 'ok' }),
+  'GET /agents': () => agents,
   'POST /ai/test': () => ({ ok: true, model: health.llm_model, latency_ms: 840 }),
 
   'GET /auth/sso/status': () => ({ enabled: false }),

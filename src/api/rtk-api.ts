@@ -25,7 +25,7 @@ async function execute<T>(request: () => Promise<T>): Promise<{ data: T } | { er
   }
 }
 
-const cacheTags = ['Me', 'Health', 'Stories', 'Journal', 'Stats', 'Projects', 'Members', 'Context', 'FieldConfig', 'Users', 'Settings', 'Connections', 'JiraProjects', 'ConfluenceSpaces', 'GitlabProjects', 'Opencode'] as const
+const cacheTags = ['Me', 'Health', 'Agents', 'Stories', 'Journal', 'Stats', 'Projects', 'Members', 'Context', 'FieldConfig', 'Users', 'Settings', 'Connections', 'JiraProjects', 'ConfluenceSpaces', 'GitlabProjects', 'Opencode'] as const
 
 // Reuse the HTTP client for JWT handling, snake_case conversion and the demo backend.
 export const atlasApi = createApi({
@@ -44,6 +44,10 @@ export const atlasApi = createApi({
     getHealth: build.query<Awaited<ReturnType<typeof api.health>>, void>({
       queryFn: () => execute(() => api.health()),
       providesTags: ['Health'],
+    }),
+    getAgents: build.query<Awaited<ReturnType<typeof api.agents>>, void>({
+      queryFn: () => execute(() => api.agents()),
+      providesTags: ['Agents'],
     }),
     getStories: build.query<Awaited<ReturnType<typeof api.us.list>>, void>({
       queryFn: () => execute(() => api.us.list()),

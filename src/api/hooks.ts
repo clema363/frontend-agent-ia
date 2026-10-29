@@ -13,6 +13,7 @@ export const useMe = () => atlasApi.useGetMeQuery()
 export const useUpdateMe = () => mutation(atlasApi.useUpdateMeMutation())
 export const useSavePreferences = () => mutation(atlasApi.useSavePreferencesMutation())
 export const useHealth = () => atlasApi.useGetHealthQuery()
+export const useAgents = () => atlasApi.useGetAgentsQuery()
 export const useTestAi = () => mutation(atlasApi.useTestAiMutation())
 
 const selectStories = atlasApi.endpoints.getStories.select()

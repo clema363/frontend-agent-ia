@@ -12,6 +12,7 @@ import {
   User,
   Loader,
   Code2,
+  Workflow,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -94,6 +95,7 @@ const navItems = [
   { title: 'Kanban', to: '/kanban', icon: SquareKanban },
   { title: 'Editor', to: '/editor', icon: Code2 },
   { title: 'Journal', to: '/journal', icon: ScrollText },
+  { title: 'Schéma', to: '/schema', icon: Workflow },
   { title: 'Settings', to: '/settings', icon: Settings },
 ]
 

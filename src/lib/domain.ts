@@ -374,5 +374,35 @@ export const opencodeSteps: { id: OpencodeStepId; label: string; column: KanbanC
   { id: 'coding', label: 'Coding', column: 'coding', agent: 'build' },
 ]
 
+// GET /agents: how the LangGraph stage agents work, read from the backend code (Schéma page).
+export type AgentRequirement = 'jira' | 'confluence' | 'repo' | 'code' | 'skills'
+
+export type AgentInput = { name: string; label: string; description: string; requires: AgentRequirement | null }
+
+export type AgentTool = { name: string; description: string; requires: AgentRequirement }
+
+export type AgentOverview = {
+  stage: StageId
+  name: string
+  column: KanbanColumnId
+  nextColumn: KanbanColumnId
+  approvers: Role[]
+  asksQuestions: boolean
+  contextMaps: ContextMapKind[]
+  inputs: AgentInput[]
+  tools: AgentTool[]
+  output: { name: string; description: string }[]
+  systemPrompt: string
+  checklist: string
+}
+
+export type AgentsOverview = {
+  models: { strong: string; fast: string }
+  integrations: { jira: boolean; confluence: boolean; github: boolean; localRepo: boolean }
+  graph: { id: string; label: string; description: string }[]
+  prompts: { sharedRules: string; questions: string; critic: string; revision: string }
+  agents: AgentOverview[]
+}
+
 // Cockpit priority levels to map to Jira project priorities.
 export const cockpitPriorities = ['Critical', 'High', 'Medium', 'Low'] as const

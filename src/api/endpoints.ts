@@ -2,6 +2,7 @@
 // Request bodies use camelCase; client.ts converts them to snake_case.
 import type {
   AgentAnswers,
+  AgentsOverview,
   AppUser,
   ConfluencePage,
   ConfluenceSpace,
@@ -37,6 +38,7 @@ type Search = { q?: string; connectionId?: string }
 
 export const api = {
   health: () => request<Health>('GET', '/health'),
+  agents: () => request<AgentsOverview>('GET', '/agents'),
   testAi: () => request<{ ok: boolean; model: string; latencyMs: number }>('POST', '/ai/test'),
 
   auth: {

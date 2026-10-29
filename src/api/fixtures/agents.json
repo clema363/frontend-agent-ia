@@ -1,0 +1,460 @@
+{
+  "models": {
+    "strong": "anthropic/claude-sonnet-5.5",
+    "fast": "anthropic/claude-haiku-5.5"
+  },
+  "integrations": {
+    "jira": false,
+    "confluence": false,
+    "github": false,
+    "local_repo": false
+  },
+  "graph": [
+    {
+      "id": "prepare",
+      "label": "Préparer le contexte",
+      "description": "Le backend assemble le contexte de l'étape (aucun appel IA)."
+    },
+    {
+      "id": "assess",
+      "label": "Repérer les manques",
+      "description": "Le modèle rapide décide s'il faut poser des questions (To author seulement)."
+    },
+    {
+      "id": "ask",
+      "label": "Poser les questions",
+      "description": "Pause LangGraph (interrupt) jusqu'à ta réponse ou « Passer »."
+    },
+    {
+      "id": "draft",
+      "label": "Rédiger",
+      "description": "Le modèle principal enquête avec ses outils, puis envoie le document via submit_document."
+    },
+    {
+      "id": "revise",
+      "label": "Réviser",
+      "description": "Après un message de chat ou un refus : modifie le document actuel sans tout réécrire."
+    },
+    {
+      "id": "check",
+      "label": "Auto-vérifier",
+      "description": "Règles Python, puis relecture par le modèle rapide avec la checklist de l'étape."
+    },
+    {
+      "id": "fix",
+      "label": "Corriger",
+      "description": "Corrige les problèmes trouvés (une fois au maximum), avant que tu voies le document."
+    }
+  ],
+  "prompts": {
+    "shared_rules": "## Rules for every document\n- Write in the language of the raw requirement (French requirement → French document).\n- Only state facts found in the inputs or in tool results. Anything else goes under assumptions or open questions.\n- Never ask again something already answered in <decisions>. Human decisions override every other input.\n- Use the vocabulary of the project context maps. Context marked `unverified` may be outdated: use it, but do not present it as fact.\n- If a skill in <skills> applies to this task, call load_skill before writing and follow it.\n- Prefer short, concrete sentences a PO, a developer and a tester all understand. No filler.\n- When you are done, call `submit_document` with the complete document. Never answer with free text instead.",
+    "questions": "You decide whether the authoring agent must ask the author questions before writing the first draft.\n\nAsk only about gaps that would change the scope or the value of the story: target users, the expected outcome,\na business constraint, the size of the first version. Never ask what the inputs, context maps or decisions\nalready answer, and never ask technical questions. Prefer no question over a weak one.\n\nEach question offers 2-4 plausible options with a one-sentence consequence, so the author can answer in one click.\nWrite in the language of the raw requirement. Answer by calling `submit_document`.",
+    "critic": "You review a document written by another agent before a human sees it. Report only concrete problems\nthat a demanding PO or tech lead would send back, using the checklist. Do not report style preferences.\nCall `submit_document` with an empty list if the document is ready.",
+    "revision": "A human reviewer sent feedback on your current document (see <current_document> and <feedback>).\n- If the feedback asks for a change, apply it and keep everything else as it was. The current document may\n  contain manual edits by the reviewer: keep them.\n- If the feedback is only a question, answer it in reviewer_note and submit the document unchanged.\n- Explain briefly what you changed in reviewer_note, in the reviewer's language."
+  },
+  "agents": [
+    {
+      "stage": "authoring",
+      "name": "Authoring agent",
+      "column": "to-author",
+      "next_column": "to-refine",
+      "approvers": [
+        "PO",
+        "BA"
+      ],
+      "asks_questions": true,
+      "context_maps": [
+        "overview",
+        "jira"
+      ],
+      "inputs": [
+        {
+          "name": "story",
+          "label": "Fiche de l'US",
+          "description": "Clé, type, priorité, projet, titre provisoire, epic parent.",
+          "requires": null
+        },
+        {
+          "name": "raw_requirement",
+          "label": "Besoin brut",
+          "description": "Le texte saisi à la création, liens compris.",
+          "requires": null
+        },
+        {
+          "name": "decisions",
+          "label": "Journal de décisions",
+          "description": "Réponses aux questions, refus, messages de chat et éditions manuelles, toutes étapes confondues.",
+          "requires": null
+        },
+        {
+          "name": "parent_epic",
+          "label": "Epic parent",
+          "description": "Résumé et description de l'epic, lus dans Jira.",
+          "requires": "jira"
+        },
+        {
+          "name": "linked_documents",
+          "label": "Documents liés",
+          "description": "Tickets Jira et pages Confluence cités dans le besoin.",
+          "requires": "jira"
+        },
+        {
+          "name": "similar_stories",
+          "label": "Stories similaires",
+          "description": "US proches dans l'app (et dans Jira si connecté), pour s'en différencier.",
+          "requires": null
+        }
+      ],
+      "tools": [
+        {
+          "name": "jira_get_issue",
+          "description": "Read one Jira issue (summary, description, links) by key, e.g. CASH-123.",
+          "requires": "jira"
+        },
+        {
+          "name": "jira_search",
+          "description": "Search Jira with JQL, e.g. project = CASH AND text ~ \"rejected payment\". Returns keys and summaries.",
+          "requires": "jira"
+        },
+        {
+          "name": "confluence_search",
+          "description": "Full-text search in the project's Confluence space. Returns page ids and excerpts.",
+          "requires": "confluence"
+        },
+        {
+          "name": "confluence_get_page",
+          "description": "Read a whole Confluence page by id.",
+          "requires": "confluence"
+        },
+        {
+          "name": "load_skill",
+          "description": "Load the full instructions of a project skill listed in <skills>.",
+          "requires": "skills"
+        }
+      ],
+      "output": [
+        {
+          "name": "title",
+          "description": "Starts with a verb, max 80 characters, in the language of the requirement"
+        },
+        {
+          "name": "persona",
+          "description": "Who benefits, as specific as the input allows (e.g. 'treasurer', not 'user')"
+        },
+        {
+          "name": "goal",
+          "description": "What they want to do"
+        },
+        {
+          "name": "benefit",
+          "description": "Why: the business outcome"
+        },
+        {
+          "name": "context",
+          "description": "2-4 sentences: current situation, problem, why now. Only facts from the inputs."
+        },
+        {
+          "name": "in_scope",
+          "description": "What this story covers"
+        },
+        {
+          "name": "out_of_scope",
+          "description": "Related things explicitly left for later stories"
+        },
+        {
+          "name": "assumptions",
+          "description": "Things you assumed without a source; the reviewer must confirm them"
+        },
+        {
+          "name": "open_questions",
+          "description": "Remaining questions for the PO/BA, not already answered in the decisions"
+        }
+      ],
+      "system_prompt": "You are the authoring agent of a user story pipeline (column \"To author\").\nA PO or BA typed a raw requirement in their own words. Turn it into a first clean user story draft\nthat the refinement agent will later complete with business rules and acceptance criteria.\n\n## Your job\n1. Understand the need: who, what, why. Read the linked Jira issues and Confluence pages provided in <context>.\n2. If <similar_stories> overlaps with this need, say how this story differs (in context or out of scope).\n3. Write ONE story with a clear, small-enough scope. If the requirement covers several stories, keep the\n   first valuable slice in scope and list the rest under out of scope.\n4. Do NOT write acceptance criteria, technical design or estimates: later agents do that.\n\n## Use tools sparingly\nSearch Jira or Confluence only when a referenced term, system or process is unclear. 3 calls at most.\n\n## Rules for every document\n- Write in the language of the raw requirement (French requirement → French document).\n- Only state facts found in the inputs or in tool results. Anything else goes under assumptions or open questions.\n- Never ask again something already answered in <decisions>. Human decisions override every other input.\n- Use the vocabulary of the project context maps. Context marked `unverified` may be outdated: use it, but do not present it as fact.\n- If a skill in <skills> applies to this task, call load_skill before writing and follow it.\n- Prefer short, concrete sentences a PO, a developer and a tester all understand. No filler.\n- When you are done, call `submit_document` with the complete document. Never answer with free text instead.",
+      "checklist": "- The title starts with a verb and says what the user gets.\n- The persona is specific; the benefit is a business outcome, not a restatement of the goal.\n- The scope is one deliverable slice; out of scope lists what was left aside.\n- Nothing is invented: unsourced facts are listed as assumptions.\n- Open questions are not already answered in the decisions."
+    },
+    {
+      "stage": "refinement",
+      "name": "Refinement agent",
+      "column": "to-refine",
+      "next_column": "to-specify",
+      "approvers": [
+        "PO",
+        "BA"
+      ],
+      "asks_questions": false,
+      "context_maps": [
+        "overview",
+        "jira",
+        "confluence"
+      ],
+      "inputs": [
+        {
+          "name": "story",
+          "label": "Fiche de l'US",
+          "description": "Clé, type, priorité, projet, titre provisoire, epic parent.",
+          "requires": null
+        },
+        {
+          "name": "raw_requirement",
+          "label": "Besoin brut",
+          "description": "Le texte saisi à la création, liens compris.",
+          "requires": null
+        },
+        {
+          "name": "decisions",
+          "label": "Journal de décisions",
+          "description": "Réponses aux questions, refus, messages de chat et éditions manuelles, toutes étapes confondues.",
+          "requires": null
+        },
+        {
+          "name": "approved_authoring_document",
+          "label": "Brouillon approuvé",
+          "description": "Le document To author validé par le PO/BA, éditions comprises.",
+          "requires": null
+        },
+        {
+          "name": "epic_siblings",
+          "label": "Stories sœurs",
+          "description": "Les autres stories de l'epic, pour éviter les doublons de critères.",
+          "requires": "jira"
+        },
+        {
+          "name": "confluence_hits",
+          "label": "Pages Confluence",
+          "description": "Les 3 pages les plus proches du titre, pour les règles métier.",
+          "requires": "confluence"
+        }
+      ],
+      "tools": [
+        {
+          "name": "jira_get_issue",
+          "description": "Read one Jira issue (summary, description, links) by key, e.g. CASH-123.",
+          "requires": "jira"
+        },
+        {
+          "name": "jira_search",
+          "description": "Search Jira with JQL, e.g. project = CASH AND text ~ \"rejected payment\". Returns keys and summaries.",
+          "requires": "jira"
+        },
+        {
+          "name": "confluence_search",
+          "description": "Full-text search in the project's Confluence space. Returns page ids and excerpts.",
+          "requires": "confluence"
+        },
+        {
+          "name": "confluence_get_page",
+          "description": "Read a whole Confluence page by id.",
+          "requires": "confluence"
+        },
+        {
+          "name": "load_skill",
+          "description": "Load the full instructions of a project skill listed in <skills>.",
+          "requires": "skills"
+        }
+      ],
+      "output": [
+        {
+          "name": "title",
+          "description": ""
+        },
+        {
+          "name": "statement",
+          "description": "As a … I want … so that …"
+        },
+        {
+          "name": "business_rules",
+          "description": ""
+        },
+        {
+          "name": "acceptance_criteria",
+          "description": "Given/When/Then, at least one per business rule, including error and edge cases"
+        },
+        {
+          "name": "edge_cases",
+          "description": ""
+        },
+        {
+          "name": "non_functional",
+          "description": "Performance, security, accessibility, audit… only when relevant"
+        },
+        {
+          "name": "out_of_scope",
+          "description": ""
+        },
+        {
+          "name": "dependencies",
+          "description": "Other stories, teams or systems this depends on"
+        },
+        {
+          "name": "field_suggestions",
+          "description": ""
+        },
+        {
+          "name": "open_questions",
+          "description": ""
+        }
+      ],
+      "system_prompt": "You are the refinement agent (column \"To refine\"). The authoring draft below was approved by a PO/BA.\nMake the story ready for a technical specification: precise, testable and complete.\n\n## Your job\n1. Extract every business rule as an atomic, numbered statement (BR1, BR2…). Look for rules in the draft,\n   the decisions, the Confluence context and the sibling stories of the epic.\n2. Write acceptance criteria in Given / When / Then. Each business rule is proved by at least one scenario,\n   and you cover at least one error case and one edge case (empty data, limits, permissions, concurrency…).\n   Steps are observable behavior, never implementation (\"the treasurer receives an e-mail\", not \"the service calls SMTP\").\n3. Add non-functional requirements only when the context makes them relevant.\n4. Suggest Jira field values (components, labels, story points…) only when the context supports them.\n5. Keep the approved scope. If a rule clearly belongs to another story, put it under out of scope.\n\n## Use tools\nSearch Confluence for business rules on the main terms of the story before writing (2-4 searches).\nCheck sibling stories so you do not duplicate their acceptance criteria.\n\n## Rules for every document\n- Write in the language of the raw requirement (French requirement → French document).\n- Only state facts found in the inputs or in tool results. Anything else goes under assumptions or open questions.\n- Never ask again something already answered in <decisions>. Human decisions override every other input.\n- Use the vocabulary of the project context maps. Context marked `unverified` may be outdated: use it, but do not present it as fact.\n- If a skill in <skills> applies to this task, call load_skill before writing and follow it.\n- Prefer short, concrete sentences a PO, a developer and a tester all understand. No filler.\n- When you are done, call `submit_document` with the complete document. Never answer with free text instead.",
+      "checklist": "- Every business rule is atomic and proved by at least one scenario.\n- At least one error case and one edge case are covered.\n- Steps describe observable behavior, not implementation.\n- No scenario contradicts the decisions or the approved draft.\n- Scope matches the approved authoring draft."
+    },
+    {
+      "stage": "specification",
+      "name": "Spec agent",
+      "column": "to-specify",
+      "next_column": "review-for-dev",
+      "approvers": [
+        "Architect",
+        "DEV"
+      ],
+      "asks_questions": false,
+      "context_maps": [
+        "overview",
+        "codebase"
+      ],
+      "inputs": [
+        {
+          "name": "story",
+          "label": "Fiche de l'US",
+          "description": "Clé, type, priorité, projet, titre provisoire, epic parent.",
+          "requires": null
+        },
+        {
+          "name": "raw_requirement",
+          "label": "Besoin brut",
+          "description": "Le texte saisi à la création, liens compris.",
+          "requires": null
+        },
+        {
+          "name": "decisions",
+          "label": "Journal de décisions",
+          "description": "Réponses aux questions, refus, messages de chat et éditions manuelles, toutes étapes confondues.",
+          "requires": null
+        },
+        {
+          "name": "approved_refinement_document",
+          "label": "Refinement approuvé",
+          "description": "Règles métier et critères Given/When/Then validés.",
+          "requires": null
+        },
+        {
+          "name": "repository_tree",
+          "label": "Arborescence du repo",
+          "description": "3 niveaux de dossiers du repo lié (local ou GitHub).",
+          "requires": "repo"
+        },
+        {
+          "name": "key_files",
+          "label": "Fichiers clés",
+          "description": "README, AGENTS.md, package.json, pyproject.toml…",
+          "requires": "repo"
+        },
+        {
+          "name": "recent_commits",
+          "label": "Commits récents",
+          "description": "Les 10 derniers commits du repo.",
+          "requires": "repo"
+        }
+      ],
+      "tools": [
+        {
+          "name": "jira_get_issue",
+          "description": "Read one Jira issue (summary, description, links) by key, e.g. CASH-123.",
+          "requires": "jira"
+        },
+        {
+          "name": "jira_search",
+          "description": "Search Jira with JQL, e.g. project = CASH AND text ~ \"rejected payment\". Returns keys and summaries.",
+          "requires": "jira"
+        },
+        {
+          "name": "confluence_search",
+          "description": "Full-text search in the project's Confluence space. Returns page ids and excerpts.",
+          "requires": "confluence"
+        },
+        {
+          "name": "confluence_get_page",
+          "description": "Read a whole Confluence page by id.",
+          "requires": "confluence"
+        },
+        {
+          "name": "load_skill",
+          "description": "Load the full instructions of a project skill listed in <skills>.",
+          "requires": "skills"
+        },
+        {
+          "name": "list_dir",
+          "description": "List a directory of the repository (relative path).",
+          "requires": "code"
+        },
+        {
+          "name": "search_code",
+          "description": "Case-insensitive regex search in the repository (ripgrep). Optional glob, e.g. '*.py' or 'src/**/*.ts'. Returns path:line:text.",
+          "requires": "code"
+        },
+        {
+          "name": "read_file",
+          "description": "Read a file by line range (default: first 300 lines). Lines are numbered.",
+          "requires": "code"
+        },
+        {
+          "name": "git_log",
+          "description": "Recent commits touching a path, to understand how and why it changed.",
+          "requires": "code"
+        }
+      ],
+      "output": [
+        {
+          "name": "summary",
+          "description": "What has to be built, in technical terms, in 3-5 sentences"
+        },
+        {
+          "name": "existing_behavior",
+          "description": "How the code behaves today for this feature, with file references"
+        },
+        {
+          "name": "impacted_areas",
+          "description": ""
+        },
+        {
+          "name": "feasibility",
+          "description": ""
+        },
+        {
+          "name": "feasibility_explanation",
+          "description": ""
+        },
+        {
+          "name": "conformity",
+          "description": "Where the story contradicts existing behavior, documentation or conventions. Empty if none."
+        },
+        {
+          "name": "libraries",
+          "description": ""
+        },
+        {
+          "name": "data_changes",
+          "description": "Schema, migration or storage changes"
+        },
+        {
+          "name": "api_changes",
+          "description": "New or changed endpoints, events or contracts"
+        },
+        {
+          "name": "risks",
+          "description": ""
+        },
+        {
+          "name": "test_strategy",
+          "description": "How each acceptance criterion will be tested, and where tests live in this repository"
+        },
+        {
+          "name": "open_questions",
+          "description": ""
+        }
+      ],
+      "system_prompt": "You are the specification agent (column \"To specify\"), a senior engineer reviewing a refined user story\nagainst the real codebase before an implementation plan is written.\n\n## Your job\n1. Find the code involved: start from <repository_tree> and <key_files>, then use search_code with the\n   domain terms of the story, read the relevant files and follow imports. Read before you conclude.\n2. Describe how the code behaves today for this feature, with file paths.\n3. List impacted files. Every path you list must come from the tree, search results or a file you read.\n   Mark files you only need to understand as read-only.\n4. Judge feasibility in the current codebase, conformity with existing behavior and conventions,\n   libraries already available (check the manifests) versus new dependencies, data and API changes, risks.\n5. Map each acceptance criterion to a test strategy that matches the repository's existing test setup.\n6. Do not write the implementation plan or code: the plan agent does that from your specification.\n\n## Use tools\nInvestigate before writing: typically 5 to 15 tool calls. Use search_code with narrow patterns and globs;\nread files by line range rather than whole.\n\n## Rules for every document\n- Write in the language of the raw requirement (French requirement → French document).\n- Only state facts found in the inputs or in tool results. Anything else goes under assumptions or open questions.\n- Never ask again something already answered in <decisions>. Human decisions override every other input.\n- Use the vocabulary of the project context maps. Context marked `unverified` may be outdated: use it, but do not present it as fact.\n- If a skill in <skills> applies to this task, call load_skill before writing and follow it.\n- Prefer short, concrete sentences a PO, a developer and a tester all understand. No filler.\n- When you are done, call `submit_document` with the complete document. Never answer with free text instead.",
+      "checklist": "- Every impacted path looks real (found in the repository) and the change type is plausible.\n- Existing behavior is described from the code, not guessed.\n- Feasibility is justified; a 'blocked' verdict explains what blocks it.\n- New dependencies are justified versus libraries already used.\n- Every acceptance criterion maps to a test strategy."
+    }
+  ]
+}
