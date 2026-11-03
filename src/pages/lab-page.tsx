@@ -22,6 +22,7 @@ import SmoothButton from '@/components/smoothui/smooth-button'
 import { TabsIndicator, TabsList, TabsRoot, TabsTab } from '@/components/smoothui/tabs'
 import { Badge } from '@/components/ui/badge'
 import type { AgentQuestion, CodingAgentRun, CodingAgentStatus } from '@/lib/domain'
+import { defaultOrbColors, orbPresets, setOrbColors, useOrbColors, type OrbColors } from '@/lib/orb-colors'
 import { cn } from '@/lib/utils'
 
 // Mockup page: every place where an agent works, current UI next to a SmoothUI version,
@@ -453,6 +454,91 @@ function MergeRequestSection() {
   )
 }
 
+// 8 — App-wide colour of the AI orb.
+const colorFields: { key: keyof OrbColors; label: string; hint: string }[] = [
+  { key: 'body', label: 'Corps', hint: 'La couleur principale' },
+  { key: 'bodyEdge', label: 'Reflet', hint: 'Le bord clair qui marbre' },
+  { key: 'feature', label: 'Yeux', hint: 'Les yeux du personnage' },
+]
+
+function OrbColorSection() {
+  const stored = useOrbColors()
+  const colors = stored ?? defaultOrbColors
+  const activePreset = orbPresets.find((preset) => colorFields.every(({ key }) => preset.colors[key].toLowerCase() === colors[key].toLowerCase()))
+  return (
+    <section id="orb-color" className="scroll-mt-16 space-y-4">
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold tracking-tight">Couleur de l’orb</h2>
+          <p className="text-sm text-muted-foreground">S’applique à tous les orbs de l’app (Story chat, kanban, questions, pipeline). Enregistré dans ce navigateur.</p>
+        </div>
+        <SmoothButton size="xs" variant="ghost" onClick={() => setOrbColors(null)} disabled={!stored}>
+          <RotateCcw /> Couleurs par défaut
+        </SmoothButton>
+      </header>
+      <div className="grid gap-6 rounded-2xl border p-6 lg:grid-cols-[1fr_auto]">
+        <div className="space-y-6">
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Thèmes</p>
+            <div className="flex flex-wrap gap-2">
+              {orbPresets.map((preset) => (
+                <button
+                  key={preset.id}
+                  type="button"
+                  onClick={() => setOrbColors(preset.id === 'smooth' ? null : preset.colors)}
+                  aria-pressed={activePreset?.id === preset.id}
+                  className={cn(
+                    'flex items-center gap-2 rounded-full border py-1 pr-3 pl-1 text-sm transition-colors hover:bg-muted',
+                    activePreset?.id === preset.id && 'border-foreground/40 bg-muted',
+                  )}
+                >
+                  <span
+                    className="size-6 rounded-full border"
+                    style={{ backgroundImage: `radial-gradient(circle at 32% 28%, ${preset.colors.bodyEdge}, ${preset.colors.body})` }}
+                    aria-hidden="true"
+                  />
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Sur mesure</p>
+            <div className="grid gap-3 sm:grid-cols-3">
+              {colorFields.map((field) => (
+                <label key={field.key} className="flex items-center gap-3 rounded-xl border p-2.5 transition-colors focus-within:border-ring hover:bg-muted/50">
+                  <input
+                    type="color"
+                    value={colors[field.key]}
+                    onChange={(event) => setOrbColors({ ...colors, [field.key]: event.target.value })}
+                    className="size-9 shrink-0 cursor-pointer rounded-lg border-0 bg-transparent p-0 [&::-webkit-color-swatch]:rounded-lg [&::-webkit-color-swatch]:border [&::-webkit-color-swatch-wrapper]:p-0"
+                  />
+                  <span className="min-w-0">
+                    <span className="block text-sm font-medium">{field.label}</span>
+                    <span className="block truncate font-mono text-xs text-muted-foreground">{colors[field.key]}</span>
+                  </span>
+                </label>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">Le corps donne la teinte, le reflet le marbré, les yeux le contraste : garde des yeux sombres sur un corps clair, et l’inverse.</p>
+          </div>
+        </div>
+        <div className="flex flex-col items-center justify-center gap-4 lg:border-l lg:pl-6">
+          <AIOrbFace size={120} state="idle" />
+          <div className="flex gap-3">
+            {(['thinking', 'listening', 'done', 'error'] as AIState[]).map((state) => (
+              <div key={state} className="flex flex-col items-center gap-1">
+                <AIOrbFace size={36} state={state} gaze={false} />
+                <span className="text-[10px] text-muted-foreground">{stateLabels[state]}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
 const sections = [
   { id: 'drafting', label: 'Rédaction' },
   { id: 'cards', label: 'Cartes kanban' },
@@ -461,6 +547,7 @@ const sections = [
   { id: 'approval', label: 'Validation' },
   { id: 'opencode', label: 'OpenCode' },
   { id: 'merge-request', label: 'Merge request' },
+  { id: 'orb-color', label: 'Couleur de l’orb' },
 ]
 
 export function LabPage() {
@@ -493,6 +580,7 @@ export function LabPage() {
         <ApprovalSection />
         <OpencodeSection />
         <MergeRequestSection />
+        <OrbColorSection />
       </div>
     </>
   )

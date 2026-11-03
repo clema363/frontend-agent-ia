@@ -1,6 +1,7 @@
 "use client";
 
 import Orb from "@/components/smoothui/orb";
+import { useOrbColors } from "@/lib/orb-colors";
 import { cn } from "@/lib/utils";
 import {
   type MotionValue,
@@ -204,7 +205,9 @@ const AIOrbFace = ({
   const shouldReduceMotion = useReducedMotion();
   const amplitudeValue = useAmplitudeValue(amplitude);
   const stateMotion = getAIStateMotion(state);
-  const finalColors = { ...DEFAULT_COLORS, ...colors };
+  // App-wide colours chosen in the AI Lab; an explicit `colors` prop still wins.
+  const storedColors = useOrbColors();
+  const finalColors = { ...DEFAULT_COLORS, ...storedColors, ...colors };
 
   // Gradient ids must be unique per instance, or a second face on the page
   // silently repaints the first one's body.
