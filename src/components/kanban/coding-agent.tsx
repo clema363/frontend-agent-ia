@@ -11,6 +11,7 @@ import {
   Loader,
   type LucideIcon,
 } from 'lucide-react'
+import AIOrbFace from '@/components/smoothui/ai-orb-face'
 import { Button } from '@/components/ui/button'
 import type { CodingAgentRun, CodingAgentStatus } from '@/lib/domain'
 import { cn } from '@/lib/utils'
@@ -93,12 +94,11 @@ export function MergeRequest({ run }: { run: CodingAgentRun }) {
         <>
           <div className="flex items-center justify-between gap-2 text-xs">
             <span className={cn('flex items-center gap-1', ciStyles[mr.ci].className)}>
-              {mr.ci === 'pending' ? (
-                <Loader className="size-3.5 animate-spin" aria-hidden="true" />
-              ) : mr.ci === 'passed' ? (
+              {/* The AI orb replaces the spinner: busy while the pipeline runs, upset when it fails. */}
+              {mr.ci === 'passed' ? (
                 <CircleCheck className="size-3.5" aria-hidden="true" />
               ) : (
-                <CircleAlert className="size-3.5" aria-hidden="true" />
+                <AIOrbFace size={16} state={mr.ci === 'pending' ? 'thinking' : 'error'} gaze={false} className="shrink-0" />
               )}
               {ciStyles[mr.ci].label}
             </span>

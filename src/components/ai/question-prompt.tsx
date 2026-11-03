@@ -1,5 +1,6 @@
 import type { FormEvent } from 'react'
-import { ArrowRight, Bot, CornerDownLeft, X } from 'lucide-react'
+import { ArrowRight, CornerDownLeft, X } from 'lucide-react'
+import AIOrbFace from '@/components/smoothui/ai-orb-face'
 import { Button } from '@/components/ui/button'
 import {
   Questionnaire,
@@ -52,7 +53,8 @@ export function QuestionPrompt({ agent, questions, pending = false, onSubmit, on
       className="animate-in fade-in slide-in-from-bottom-2 gap-3 rounded-3xl border bg-background p-3 shadow-lg duration-300 dark:bg-card"
     >
       <header className="flex items-center gap-2 px-1 text-xs text-muted-foreground">
-        <Bot className="size-3.5 text-primary" aria-hidden="true" />
+        {/* Listening while the user answers, thinking once the answers are sent. */}
+        <AIOrbFace size={22} state={pending ? 'thinking' : 'listening'} gaze={false} className="shrink-0" />
         <span>
           <span className="font-medium text-foreground">{agent}</span> needs a bit more context
         </span>

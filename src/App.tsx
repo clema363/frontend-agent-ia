@@ -14,6 +14,7 @@ import { EditorPage } from '@/pages/editor-page'
 import { SkillPage } from '@/pages/skill-page'
 import { SchemaPage } from '@/pages/schema-page'
 import { StoryChatPage } from '@/pages/story-chat-page'
+import { LabPage } from '@/pages/lab-page'
 
 export default function App() {
   return (
@@ -30,6 +31,7 @@ export default function App() {
           <Route path="/schema" element={<SchemaPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/lab" element={<LabPage />} />
         </Route>
         {/* Full-height pages: the board scrolls inside its columns, the editor in its panes. */}
         <Route path="/kanban" element={<KanbanPage />} />
