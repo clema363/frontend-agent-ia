@@ -13,6 +13,7 @@ import {
   Loader,
   Code2,
   Workflow,
+  MessagesSquare,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -93,6 +94,7 @@ const navItems = [
   { title: 'Dashboard', to: '/', icon: LayoutDashboard },
   { title: 'Projects', to: '/projects', icon: FolderOpen },
   { title: 'Kanban', to: '/kanban', icon: SquareKanban },
+  { title: 'Story chat', to: '/chat', icon: MessagesSquare },
   { title: 'Editor', to: '/editor', icon: Code2 },
   { title: 'Journal', to: '/journal', icon: ScrollText },
   { title: 'Schéma', to: '/schema', icon: Workflow },

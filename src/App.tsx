@@ -13,6 +13,7 @@ import { ProfilePage } from '@/pages/profile-page'
 import { EditorPage } from '@/pages/editor-page'
 import { SkillPage } from '@/pages/skill-page'
 import { SchemaPage } from '@/pages/schema-page'
+import { StoryChatPage } from '@/pages/story-chat-page'
 
 export default function App() {
   return (
@@ -33,6 +34,7 @@ export default function App() {
         {/* Full-height pages: the board scrolls inside its columns, the editor in its panes. */}
         <Route path="/kanban" element={<KanbanPage />} />
         <Route path="/editor" element={<EditorPage />} />
+        <Route path="/chat" element={<StoryChatPage />} />
       </Route>
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
