@@ -26,6 +26,42 @@ export function PriorityIcon({ priority, className }: { priority: Priority; clas
   return <Icon className={cn('size-3.5 shrink-0', color, className)} aria-label={`${priority} priority`} />
 }
 
+const typeDots: Record<IssueType, string> = {
+  Story: 'bg-green-500',
+  Epic: 'bg-violet-500',
+  Bug: 'bg-red-500',
+  Task: 'bg-blue-500',
+  Spike: 'bg-amber-500',
+}
+
+// Colored dot used in the Linear-style label chips of kanban cards.
+export function IssueTypeDot({ type, className }: { type: IssueType; className?: string }) {
+  return <span className={cn('size-2 shrink-0 rounded-full', typeDots[type], className)} aria-hidden="true" />
+}
+
+const priorityLevels: Record<Priority, number> = { Low: 1, Medium: 2, High: 3 }
+
+// Linear-style signal bars: one, two or three filled bars depending on the priority.
+export function PriorityBars({ priority, className }: { priority: Priority; className?: string }) {
+  const level = priorityLevels[priority]
+  return (
+    <svg viewBox="0 0 14 14" className={cn('size-3.5 shrink-0 text-muted-foreground', className)} role="img" aria-label={`${priority} priority`}>
+      {[0, 1, 2].map((bar) => (
+        <rect
+          key={bar}
+          x={2 + bar * 4}
+          y={8 - bar * 3}
+          width="2.5"
+          height={4 + bar * 3}
+          rx="0.75"
+          fill="currentColor"
+          opacity={bar < level ? 1 : 0.3}
+        />
+      ))}
+    </svg>
+  )
+}
+
 // Column status icon, similar to Linear statuses: a circle fills as the story progresses,
 // then becomes a check mark once the story is handed off to the coding agent.
 export function ColumnIcon({ column, className }: { column: KanbanColumnId; className?: string }) {

@@ -1,4 +1,4 @@
-import { useState, type FormEvent, type ReactNode } from 'react'
+import { useState, type FormEvent, type ReactElement, type ReactNode } from 'react'
 import { PlusCircle } from 'lucide-react'
 import { IssueTypeIcon, PriorityIcon } from '@/components/kanban/issue-meta'
 import { Button } from '@/components/ui/button'
@@ -17,9 +17,11 @@ type NewStoryDialogProps = {
   projects: Project[]
   epics: UserStory[]
   onCreate: (input: NewStoryInput) => void
+  // Custom trigger, e.g. the "+" button of a kanban column; defaults to the "New US" button.
+  trigger?: ReactElement
 }
 
-export function NewStoryDialog({ projects, epics, onCreate }: NewStoryDialogProps) {
+export function NewStoryDialog({ projects, epics, onCreate, trigger }: NewStoryDialogProps) {
   const [open, setOpen] = useState(false)
   const [type, setType] = useState<IssueType>('Story')
   const [selectedProjectId, setProjectId] = useState<string>()
@@ -63,10 +65,14 @@ export function NewStoryDialog({ projects, epics, onCreate }: NewStoryDialogProp
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button size="sm" />}>
-        <PlusCircle data-icon="inline-start" />
-        New US
-      </DialogTrigger>
+      {trigger ? (
+        <DialogTrigger render={trigger} />
+      ) : (
+        <DialogTrigger render={<Button size="sm" />}>
+          <PlusCircle data-icon="inline-start" />
+          New US
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-xl">
         <form onSubmit={submit} className="space-y-4">
           <DialogHeader>

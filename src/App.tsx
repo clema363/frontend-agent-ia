@@ -24,13 +24,14 @@ export default function App() {
           <Route path="/projects" element={<ProjectsPage />} />
           <Route path="/projects/:projectId/:tab?" element={<ProjectPage />} />
           <Route path="/projects/:projectId/skills/:skillId" element={<SkillPage />} />
-          <Route path="/kanban" element={<KanbanPage />} />
           <Route path="/kanban/:storyId" element={<StoryPage />} />
           <Route path="/journal" element={<JournalPage />} />
           <Route path="/schema" element={<SchemaPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/profile" element={<ProfilePage />} />
         </Route>
+        {/* Full-height pages: the board scrolls inside its columns, the editor in its panes. */}
+        <Route path="/kanban" element={<KanbanPage />} />
         <Route path="/editor" element={<EditorPage />} />
       </Route>
       <Route path="*" element={<NotFoundPage />} />
