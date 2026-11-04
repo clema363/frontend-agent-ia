@@ -526,7 +526,7 @@ function OrbColorSection() {
         <div className="flex flex-col items-center justify-center gap-4 lg:border-l lg:pl-6">
           <AIOrbFace size={120} state="idle" />
           <div className="flex gap-3">
-            {(['thinking', 'listening', 'done', 'error'] as AIState[]).map((state) => (
+            {(['thinking', 'streaming', 'listening', 'done', 'error'] as AIState[]).map((state) => (
               <div key={state} className="flex flex-col items-center gap-1">
                 <AIOrbFace size={36} state={state} gaze={false} />
                 <span className="text-[10px] text-muted-foreground">{stateLabels[state]}</span>

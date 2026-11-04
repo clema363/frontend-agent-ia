@@ -17,7 +17,7 @@ import { Markdown } from '@/components/markdown'
 import { UserAvatar } from '@/components/projects/project-parts'
 import { SourceList } from '@/components/source-badge'
 import { Button } from '@/components/ui/button'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import FloatingNavbar, { type FloatingNavbarItem } from '@/components/smoothui/floating-navbar'
 import { Textarea } from '@/components/ui/textarea'
 import { diffLines } from '@/lib/diff'
 import { planVersions } from '@/lib/opencode'
@@ -146,38 +146,31 @@ export function StoryDetail({ story, role, approving = false, answering = false,
         <h2 ref={titleRef} className="mt-3 text-3xl leading-snug font-semibold tracking-tight">{story.title}</h2>
       </div>
 
-      {/* Only the tabs stay pinned while the page scrolls; no overlay, so nothing jumps.
-          Sticky offsets start inside the scroller's pt-6, so -top-6 sits flush with its edge. */}
-      <div className={cn('sticky -top-6 z-20 mb-6 border-b bg-background pt-4 pb-2 transition-colors', !titleHidden && 'border-transparent')}>
-        <Tabs value={tab} onValueChange={(value) => changeTab(value as Tab)}>
-          <TabsList className="w-full">
-            {stages
-              .filter((item) => item.id !== 'plan')
-              .map((item) => (
-                <TabsTrigger key={item.id} value={item.id}>
-                  <StageStatusIcon output={story.stages[item.id]} isCurrent={currentStage?.id === item.id} />
-                  {item.label}
-                </TabsTrigger>
-              ))}
-            {/* Document steps above, OpenCode session steps after the divider. */}
-            <span className="flex shrink-0 items-center gap-1 px-2 text-xs text-muted-foreground" title="Steps run by OpenCode">
-              <span className="h-4 w-px bg-border" aria-hidden="true" />
-              <Bot className="ml-1 size-3.5" aria-hidden="true" />
-              <span className="hidden sm:inline">OpenCode</span>
-            </span>
-            {opencodeSteps.map((item) => (
-              <TabsTrigger key={item.id} value={item.id}>
-                {item.id === 'plan' ? (
-                  <StageStatusIcon output={story.stages.plan} isCurrent={currentStage?.id === 'plan'} />
-                ) : (
-                  <StepStatusIcon story={story} column={item.column} />
-                )}
-                {item.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
-      </div>
+      {/* SmoothUI floating navbar for the steps: pinned while the page scrolls, it shrinks once
+          the title is gone, hides on scroll-down and comes back on scroll-up. */}
+      <StepsNavbar
+        activeId={tab}
+        onChange={(id) => changeTab(id as Tab)}
+        items={[
+          ...stages
+            .filter((item) => item.id !== 'plan')
+            .map((item) => ({
+              id: item.id,
+              label: item.label,
+              icon: <StageStatusIcon output={story.stages[item.id]} isCurrent={currentStage?.id === item.id} />,
+            })),
+          ...opencodeSteps.map((item) => ({
+            id: item.id,
+            label: item.label,
+            icon:
+              item.id === 'plan' ? (
+                <StageStatusIcon output={story.stages.plan} isCurrent={currentStage?.id === 'plan'} />
+              ) : (
+                <StepStatusIcon story={story} column={item.column} />
+              ),
+          })),
+        ]}
+      />
 
       {opencodeStep && columnIndex(story.column) >= columnIndex(opencodeStep.column) ? (
         <OpencodeSession story={story} step={opencodeStep.id} isCurrent={isCurrent} emptyText={opencodeEmptyText[opencodeStep.id]} />
@@ -604,6 +597,39 @@ function StoryDiff({ before, after }: { before: string; after: string }) {
           <span className="min-w-0">{line.text || ' '}</span>
         </div>
       ))}
+    </div>
+  )
+}
+
+// The navbar follows the page scroller (not the window), so it is mounted once that scroller is known.
+function StepsNavbar({ items, activeId, onChange }: { items: FloatingNavbarItem[]; activeId: string; onChange: (id: string) => void }) {
+  const anchorRef = useRef<HTMLDivElement>(null)
+  const [scroller, setScroller] = useState<{ current: HTMLElement } | null>(null)
+  // Hiding starts only once the steps have scrolled past their own place, so the page's
+  // automatic scroll to the latest message does not hide them on load.
+  const [threshold, setThreshold] = useState(0)
+  useEffect(() => {
+    const anchor = anchorRef.current
+    if (!anchor) return
+    const element = scrollParent(anchor)
+    setThreshold(anchor.getBoundingClientRect().top - element.getBoundingClientRect().top + element.scrollTop)
+    // One stable ref object, so useScroll does not resubscribe on every render.
+    setScroller({ current: element })
+  }, [])
+
+  return (
+    // Sticky offsets start inside the scroller's pt-6, so -top-6 sits flush with its edge.
+    <div ref={anchorRef} className="pointer-events-none sticky -top-6 z-20 mb-6 flex h-16 justify-center pt-3">
+      {scroller && (
+        <FloatingNavbar
+          items={items}
+          activeId={activeId}
+          onActiveChange={onChange}
+          containerRef={scroller}
+          scrollThreshold={threshold}
+          className="pointer-events-auto relative top-0 max-w-full overflow-x-auto"
+        />
+      )}
     </div>
   )
 }
