@@ -5,7 +5,6 @@ import { FileText, FolderOpen, MessagesSquare, SquarePen, SquareKanban } from 'l
 import { useProjects, useStories } from '@/api/hooks'
 import { PageHeader } from '@/components/layout/page-header'
 import { Markdown } from '@/components/markdown'
-import AIApproval from '@/components/smoothui/ai-approval'
 import AIConversation from '@/components/smoothui/ai-conversation'
 import type { AIState } from '@/components/smoothui/ai-core'
 import AIDiff from '@/components/smoothui/ai-diff'
@@ -13,12 +12,12 @@ import AIMessage from '@/components/smoothui/ai-message'
 import AIOrbFace from '@/components/smoothui/ai-orb-face'
 import AIPromptInput from '@/components/smoothui/ai-prompt-input'
 import AIReasoning from '@/components/smoothui/ai-reasoning'
-import AISuggestions from '@/components/smoothui/ai-suggestions'
 import AITaskList from '@/components/smoothui/ai-task-list'
 import { ChatThreadsNav } from '@/components/story-chat/chat-threads-nav'
 import { StoryDraftCard } from '@/components/story-chat/story-draft-card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   buildDraftTurn,
@@ -204,7 +203,13 @@ export function StoryChatPage() {
           </div>
           <div className="w-full max-w-2xl space-y-4">
             {composer}
-            <AISuggestions suggestions={chatSuggestions} onSelect={(suggestion) => send(suggestion.label)} />
+            <div className="flex flex-wrap justify-center gap-2" aria-label="Suggestions">
+              {chatSuggestions.map((suggestion) => (
+                <Button key={suggestion.id} variant="outline" size="sm" className="rounded-full font-normal" onClick={() => send(suggestion.label)}>
+                  {suggestion.label}
+                </Button>
+              ))}
+            </div>
           </div>
         </div>
       ) : (
@@ -283,16 +288,7 @@ function DraftsBlock({ turn, onChange }: { turn: DraftsTurn; onChange: (turn: Ag
         </AnimatePresence>
       </div>
       {turn.status === 'done' && turn.drafts.length > 0 && (
-        <AIApproval
-          question={`Créer ${turn.drafts.length} user ${turn.drafts.length > 1 ? 'stories' : 'story'} sur le kanban ?`}
-          resolvedId={turn.decision}
-          onDecide={(option) => onChange({ ...turn, decision: option.id as DraftsTurn['decision'] })}
-          options={[
-            { id: 'create', label: 'Créer dans To author', detail: 'Les US partent chez l’agent d’authoring' },
-            { id: 'refine', label: 'Continuer à affiner', detail: 'Réponds dans le chat pour ajuster' },
-            { id: 'discard', label: 'Tout abandonner', destructive: true },
-          ]}
-        />
+        <DraftsDecision count={turn.drafts.length} decision={turn.decision} onDecide={(decision) => onChange({ ...turn, decision })} />
       )}
       {turn.decision === 'create' && (
         <Button size="sm" variant="outline" className="self-start" render={<Link to="/kanban" />}>
@@ -319,5 +315,37 @@ function EditBlock({ turn, onChange }: { turn: EditTurn; onChange: (turn: AgentT
         </p>
       )}
     </>
+  )
+}
+
+const decisionLabels: Record<NonNullable<DraftsTurn['decision']>, string> = {
+  create: 'Créées dans To author',
+  refine: 'On continue à affiner',
+  discard: 'Propositions abandonnées',
+}
+
+// Human checkpoint before the drafts reach the board; once decided, it shrinks to a one-line receipt.
+function DraftsDecision({ count, decision, onDecide }: { count: number; decision?: DraftsTurn['decision']; onDecide: (decision: NonNullable<DraftsTurn['decision']>) => void }) {
+  const stories = `${count} user ${count > 1 ? 'stories' : 'story'}`
+  if (decision) {
+    return (
+      <p className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Badge variant={decision === 'discard' ? 'outline' : 'secondary'}>{decisionLabels[decision]}</Badge>
+        {decision === 'create' && stories}
+      </p>
+    )
+  }
+  return (
+    <Card size="sm">
+      <CardHeader>
+        <CardTitle>Créer {stories} sur le kanban ?</CardTitle>
+        <CardDescription>Elles partent dans la colonne To author, chez l’agent d’authoring.</CardDescription>
+      </CardHeader>
+      <CardFooter className="flex flex-wrap gap-2">
+        <Button size="sm" onClick={() => onDecide('create')}>Créer dans To author</Button>
+        <Button size="sm" variant="outline" onClick={() => onDecide('refine')}>Continuer à affiner</Button>
+        <Button size="sm" variant="ghost" className="ml-auto text-destructive hover:text-destructive" onClick={() => onDecide('discard')}>Tout abandonner</Button>
+      </CardFooter>
+    </Card>
   )
 }

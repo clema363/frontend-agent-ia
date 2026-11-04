@@ -18,8 +18,8 @@ import AIReasoning from '@/components/smoothui/ai-reasoning'
 import AIResponse from '@/components/smoothui/ai-response'
 import AITaskList, { type AITask } from '@/components/smoothui/ai-task-list'
 import AIToolCall, { type AIToolCallStatus } from '@/components/smoothui/ai-tool-call'
-import SmoothButton from '@/components/smoothui/smooth-button'
-import { TabsIndicator, TabsList, TabsRoot, TabsTab } from '@/components/smoothui/tabs'
+import { Button } from '@/components/ui/button'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import type { AgentQuestion, CodingAgentRun, CodingAgentStatus } from '@/lib/domain'
 import { defaultOrbColors, orbPresets, setOrbColors, useOrbColors, type OrbColors } from '@/lib/orb-colors'
@@ -94,17 +94,16 @@ function toolStatus(state: AIState, index: number): AIToolCallStatus {
 function StatePicker({ value, onChange, onReplay }: { value: AIState; onChange: (state: AIState) => void; onReplay: () => void }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <TabsRoot value={value} onValueChange={(next) => onChange(next as AIState)} className="w-fit">
-        <TabsList variant="pill">
-          <TabsIndicator />
+      <Tabs value={value} onValueChange={(next) => onChange(next as AIState)} className="w-fit">
+        <TabsList>
           {states.map((state) => (
-            <TabsTab key={state} value={state} className="px-3 py-1.5 text-xs">{stateLabels[state]}</TabsTab>
+            <TabsTrigger key={state} value={state}>{stateLabels[state]}</TabsTrigger>
           ))}
         </TabsList>
-      </TabsRoot>
-      <SmoothButton size="xs" variant="ghost" onClick={onReplay}>
+      </Tabs>
+      <Button size="xs" variant="ghost" onClick={onReplay}>
         <RotateCcw /> Rejouer
-      </SmoothButton>
+      </Button>
     </div>
   )
 }
@@ -278,9 +277,9 @@ function QuestionsSection() {
           <h2 className="text-lg font-semibold tracking-tight">Questions de l’agent avant de rédiger</h2>
           <p className="text-sm text-muted-foreground">Kanban › détail d’une US, au-dessus du composer (question-prompt.tsx) · ton Questionnaire, avec l’AI Orb</p>
         </div>
-        <SmoothButton size="xs" variant="ghost" onClick={() => { setPending(false); setKey((k) => k + 1) }}>
+        <Button size="xs" variant="ghost" onClick={() => { setPending(false); setKey((k) => k + 1) }}>
           <RotateCcw /> Recommencer
-        </SmoothButton>
+        </Button>
       </header>
       <div className="mx-auto max-w-2xl">
         <QuestionPrompt
@@ -342,7 +341,7 @@ function ApprovalSection() {
       id="approval"
       title="Validation d’un document ou d’un plan"
       where="Kanban › détail d’une US › bouton Approve (approve-story-dialog.tsx)"
-      controls={<SmoothButton size="xs" variant="ghost" onClick={() => setKey((k) => k + 1)}><RotateCcw /> Recommencer</SmoothButton>}
+      controls={<Button size="xs" variant="ghost" onClick={() => setKey((k) => k + 1)}><RotateCcw /> Recommencer</Button>}
       current={
         <div className="flex items-center justify-between rounded-lg border p-3 text-sm">
           <span>Plan v2 prêt pour US-142</span>
@@ -404,9 +403,9 @@ function OpencodeSection() {
       current={
         <div className="flex h-full flex-col items-start justify-center gap-2 text-sm text-muted-foreground">
           <p>La session actuelle (raisonnement, outils, todos, diff) se voit sur une US en colonne Coding.</p>
-          <SmoothButton size="sm" variant="outline" asChild>
-            <Link to="/kanban">Ouvrir le kanban <ExternalLink /></Link>
-          </SmoothButton>
+          <Button size="sm" variant="outline" render={<Link to="/kanban" />}>
+            Ouvrir le kanban <ExternalLink />
+          </Button>
         </div>
       }
       smooth={
@@ -439,14 +438,13 @@ function MergeRequestSection() {
       title="Merge request et pipeline"
       where="Kanban › détail d’une US › colonne de droite (coding-agent.tsx › MergeRequest) · ta carte, avec l’AI Orb pendant la pipeline et en cas d’échec"
       controls={
-        <TabsRoot value={ci} onValueChange={(next) => setCi(next as typeof ci)} className="w-fit">
-          <TabsList variant="pill">
-            <TabsIndicator />
-            <TabsTab value="pending" className="px-3 py-1.5 text-xs">Pipeline en cours</TabsTab>
-            <TabsTab value="passed" className="px-3 py-1.5 text-xs">Réussie</TabsTab>
-            <TabsTab value="failed" className="px-3 py-1.5 text-xs">Échouée</TabsTab>
+        <Tabs value={ci} onValueChange={(next) => setCi(next as typeof ci)} className="w-fit">
+          <TabsList>
+            <TabsTrigger value="pending">Pipeline en cours</TabsTrigger>
+            <TabsTrigger value="passed">Réussie</TabsTrigger>
+            <TabsTrigger value="failed">Échouée</TabsTrigger>
           </TabsList>
-        </TabsRoot>
+        </Tabs>
       }
       current={<div className="max-w-xs"><MergeRequest run={mr} /></div>}
       smooth={null}
@@ -472,9 +470,9 @@ function OrbColorSection() {
           <h2 className="text-lg font-semibold tracking-tight">Couleur de l’orb</h2>
           <p className="text-sm text-muted-foreground">S’applique à tous les orbs de l’app (Story chat, kanban, questions, pipeline). Enregistré dans ce navigateur.</p>
         </div>
-        <SmoothButton size="xs" variant="ghost" onClick={() => setOrbColors(null)} disabled={!stored}>
+        <Button size="xs" variant="ghost" onClick={() => setOrbColors(null)} disabled={!stored}>
           <RotateCcw /> Couleurs par défaut
-        </SmoothButton>
+        </Button>
       </header>
       <div className="grid gap-6 rounded-2xl border p-6 lg:grid-cols-[1fr_auto]">
         <div className="space-y-6">
