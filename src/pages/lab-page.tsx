@@ -8,9 +8,10 @@ import { ApproveStoryDialog } from '@/components/kanban/approve-story-dialog'
 import { CodingAgentChip, MergeRequest } from '@/components/kanban/coding-agent'
 import { PageHeader } from '@/components/layout/page-header'
 import AIApproval from '@/components/smoothui/ai-approval'
+import AIContextMeter from '@/components/smoothui/ai-context-meter'
 import type { AIState } from '@/components/smoothui/ai-core'
 import AIDiff from '@/components/smoothui/ai-diff'
-import AILoader from '@/components/smoothui/ai-loader'
+import AILoader, { type AILoaderVariant } from '@/components/smoothui/ai-loader'
 import AIMessage from '@/components/smoothui/ai-message'
 import AIOrbFace from '@/components/smoothui/ai-orb-face'
 import AIPromptInput from '@/components/smoothui/ai-prompt-input'
@@ -148,6 +149,94 @@ function Panel({ label, accent, children }: { label: string; accent?: boolean; c
       </div>
       <div className="min-w-0 flex-1 p-4">{children}</div>
     </div>
+  )
+}
+
+// 0 — The building blocks on their own: loader, streamed response, context meter.
+const loaderVariants: { variant: AILoaderVariant; label: string; use: string }[] = [
+  { variant: 'dots', label: 'Dots', use: 'Dans une bulle de chat, en attendant le premier mot' },
+  { variant: 'bar', label: 'Bar', use: 'Sous un document qui va être (ré)écrit' },
+  { variant: 'grid', label: 'Grid', use: 'Sur une carte ou un panneau qui travaille en fond' },
+]
+
+const responseText =
+  'J’ai relu la page Confluence « Facturation » [1] et la story US-118 [2]. Pour l’export PDF, le plus sûr est de réutiliser le rendu HTML de l’email : les mentions légales y sont déjà validées par la compta. Je propose donc un service InvoicePdfExporter qui bloque les factures brouillon et traite les lots de 50 en moins de 10 secondes.'
+const responseCitations = [
+  { id: 'confluence', index: 1, title: 'Confluence · Facturation' },
+  { id: 'us-118', index: 2, title: 'US-118 · Envoi des factures par email' },
+]
+
+function BuildingBlocksSection() {
+  const [state, setState] = useState<AIState>('streaming')
+  const replay = useReplay(setState)
+  const text = useStreamedText(responseText, state)
+  const [used, setUsed] = useState(84_000)
+  const limit = 200_000
+  const share = (fraction: number) => Math.round(used * fraction)
+  return (
+    <section id="blocks" className="scroll-mt-16 space-y-6 border-b pb-10">
+      <header>
+        <h2 className="text-lg font-semibold tracking-tight">Composants IA</h2>
+        <p className="text-sm text-muted-foreground">Les briques SmoothUI seules, pour les comparer avant de les placer dans l’app.</p>
+      </header>
+
+      <div className="space-y-3">
+        <h3 className="text-sm font-medium">AI Loader</h3>
+        <div className="grid gap-4 sm:grid-cols-3">
+          {loaderVariants.map(({ variant, label, use }) => (
+            <div key={variant} className="flex flex-col gap-4 rounded-2xl border p-4">
+              <div className="flex h-16 items-center justify-center rounded-xl bg-muted/50 text-muted-foreground">
+                <AILoader variant={variant} />
+              </div>
+              <div className="flex h-10 items-center justify-center text-sm text-muted-foreground">
+                <AILoader variant={variant} label="Réfléchit" showElapsed />
+              </div>
+              <div>
+                <p className="text-sm font-medium">{label}</p>
+                <p className="text-xs text-muted-foreground">{use}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <h3 className="text-sm font-medium">AI Response · streaming avec sources</h3>
+          <StatePicker value={state} onChange={setState} onReplay={replay} />
+        </div>
+        <div className="min-h-32 rounded-2xl border p-5">
+          {state === 'thinking' && <AILoader variant="dots" label="L’agent cherche dans le contexte" className="text-sm text-muted-foreground" />}
+          {state === 'idle' && <p className="text-sm text-muted-foreground">Clique sur « Rejouer » pour voir la réponse s’écrire.</p>}
+          {text && <AIResponse text={text} citations={responseCitations} isStreaming={state === 'streaming'} />}
+          {state === 'error' && <p className="mt-2 text-sm text-destructive">La génération s’est interrompue.</p>}
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <h3 className="text-sm font-medium">AI Context Meter</h3>
+        <div className="flex flex-wrap items-center gap-6 rounded-2xl border p-5">
+          <AIContextMeter
+            used={used}
+            limit={limit}
+            breakdown={[
+              { label: 'Instructions système', tokens: share(0.12) },
+              { label: 'Contexte Confluence', tokens: share(0.48) },
+              { label: 'Discussion', tokens: share(0.3) },
+              { label: 'Outils', tokens: share(0.1) },
+            ]}
+          />
+          <label className="flex min-w-60 flex-1 flex-col gap-2 text-sm">
+            <span className="flex justify-between">
+              <span>Contexte utilisé</span>
+              <span className="font-mono text-xs text-muted-foreground">{used.toLocaleString('fr-FR')} / {limit.toLocaleString('fr-FR')} tokens</span>
+            </span>
+            <input type="range" min={0} max={limit} step={1000} value={used} onChange={(event) => setUsed(Number(event.target.value))} className="accent-brand" />
+            <span className="text-xs text-muted-foreground">Survole l’anneau pour le détail. Il passe à l’orange puis au rouge quand la fenêtre se remplit.</span>
+          </label>
+        </div>
+      </div>
+    </section>
   )
 }
 
@@ -538,6 +627,7 @@ function OrbColorSection() {
 }
 
 const sections = [
+  { id: 'blocks', label: 'Composants IA' },
   { id: 'drafting', label: 'Rédaction' },
   { id: 'cards', label: 'Cartes kanban' },
   { id: 'questions', label: 'Questions' },
@@ -571,6 +661,7 @@ export function LabPage() {
             ))}
           </nav>
         </div>
+        <BuildingBlocksSection />
         <DraftingSection />
         <CardChipSection />
         <QuestionsSection />
