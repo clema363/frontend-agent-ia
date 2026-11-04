@@ -1,8 +1,9 @@
-import { useMemo, useRef, useState } from 'react'
-import { FolderOpen, MoreHorizontal, PanelLeftClose, PanelLeftOpen, Pencil, Plus, Search, Trash2 } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { ChevronRight, FolderOpen, MoreHorizontal, PanelLeftClose, PanelLeftOpen, Pencil, Plus, Search, Trash2 } from 'lucide-react'
 import AILoader from '@/components/smoothui/ai-loader'
 import AIOrbFace from '@/components/smoothui/ai-orb-face'
 import { Button } from '@/components/ui/button'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import {
@@ -32,6 +33,10 @@ type ChatThreadsNavProps = {
   onDelete: (id: string) => void
 }
 
+const CLOSED_KEY = 'atlas.storyChat.closedProjects'
+// Chats shown per project before "Voir plus", like Codex's sidebar.
+const RECENT_LIMIT = 5
+
 const timeFormat = new Intl.RelativeTimeFormat('fr', { numeric: 'auto' })
 function relativeTime(at: number) {
   const minutes = Math.round((at - Date.now()) / 60000)
@@ -48,6 +53,33 @@ export function ChatThreadsNav({ threads, projects, activeId, collapsed, onToggl
   const [query, setQuery] = useState('')
   const [renaming, setRenaming] = useState<string | null>(null)
   const searchRef = useRef<HTMLInputElement>(null)
+  // Folded projects are remembered in this browser.
+  const [closed, setClosed] = useState<Set<string>>(() => new Set(JSON.parse(localStorage.getItem(CLOSED_KEY) ?? '[]') as string[]))
+  const [expanded, setExpanded] = useState<Set<string>>(new Set())
+  const activeProject = threads.find((thread) => thread.id === activeId)?.projectId
+  const isOpen = (projectId: string) => !closed.has(projectId)
+  // Opening a chat (from the URL, a new chat…) unfolds its project once; the user can fold it again.
+  useEffect(() => {
+    if (activeProject && closed.has(activeProject)) setOpen(activeProject, true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeProject])
+  function setOpen(projectId: string, open: boolean) {
+    setClosed((current) => {
+      const next = new Set(current)
+      if (open) next.delete(projectId)
+      else next.add(projectId)
+      localStorage.setItem(CLOSED_KEY, JSON.stringify([...next]))
+      return next
+    })
+  }
+  function toggleExpanded(projectId: string) {
+    setExpanded((current) => {
+      const next = new Set(current)
+      if (next.has(projectId)) next.delete(projectId)
+      else next.add(projectId)
+      return next
+    })
+  }
   const projectName = (id: string) => projects.find((p) => p.id === id)?.name ?? 'Sans projet'
 
   const groups = useMemo(() => {
@@ -109,16 +141,29 @@ export function ChatThreadsNav({ threads, projects, activeId, collapsed, onToggl
           </p>
         )}
         {groups.map(([projectId, items]) => (
-          <SidebarGroup key={projectId} className="py-1">
-            <SidebarGroupLabel className="gap-2 pr-8">
-              <FolderOpen /><span className="truncate">{projectName(projectId)}</span>
+          <Collapsible
+            key={projectId}
+            // Searching opens every group so matches are never hidden.
+            open={Boolean(query.trim()) || isOpen(projectId)}
+            onOpenChange={(open) => setOpen(projectId, open)}
+            render={<SidebarGroup className="py-1" />}
+          >
+            <SidebarGroupLabel
+              render={<CollapsibleTrigger />}
+              className="group/label w-full cursor-pointer gap-2 pr-8 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            >
+              <ChevronRight className="transition-transform duration-200 group-data-[panel-open]/label:rotate-90" />
+              <FolderOpen />
+              <span className="truncate">{projectName(projectId)}</span>
+              <span className="ml-auto font-normal tabular-nums text-muted-foreground">{items.length}</span>
             </SidebarGroupLabel>
             <SidebarGroupAction onClick={() => onNewChat(projectId)} aria-label={`Nouveau chat dans ${projectName(projectId)}`} className="top-2.5">
               <Plus />
             </SidebarGroupAction>
+            <CollapsibleContent className="h-(--collapsible-panel-height) overflow-hidden transition-[height] duration-200 ease-out data-[ending-style]:h-0 data-[starting-style]:h-0">
             <SidebarGroupContent>
               <SidebarMenu>
-                {items.map((thread) => {
+                {(expanded.has(projectId) || query.trim() ? items : items.slice(0, RECENT_LIMIT)).map((thread) => {
                   const running = threadIsRunning(thread)
                   return (
                     <SidebarMenuItem key={thread.id}>
@@ -168,9 +213,17 @@ export function ChatThreadsNav({ threads, projects, activeId, collapsed, onToggl
                     </SidebarMenuItem>
                   )
                 })}
+                {items.length > RECENT_LIMIT && !query.trim() && (
+                  <SidebarMenuItem>
+                    <SidebarMenuButton size="sm" className="text-muted-foreground" onClick={() => toggleExpanded(projectId)}>
+                      {expanded.has(projectId) ? 'Voir moins' : `Voir ${items.length - RECENT_LIMIT} de plus`}
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )}
               </SidebarMenu>
             </SidebarGroupContent>
-          </SidebarGroup>
+            </CollapsibleContent>
+          </Collapsible>
         ))}
       </nav>
     </aside>
