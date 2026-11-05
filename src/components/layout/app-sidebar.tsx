@@ -14,8 +14,8 @@ import {
   Code2,
   Workflow,
   MessagesSquare,
-  FlaskConical,
 } from 'lucide-react'
+import { AIOrbIcon } from '@/components/icons/ai-orb-icon'
 import {
   Sidebar,
   SidebarContent,
@@ -99,7 +99,7 @@ const navItems = [
   { title: 'Editor', to: '/editor', icon: Code2 },
   { title: 'Journal', to: '/journal', icon: ScrollText },
   { title: 'Schéma', to: '/schema', icon: Workflow },
-  { title: 'AI Lab', to: '/lab', icon: FlaskConical },
+  { title: 'AI Lab', to: '/lab', icon: AIOrbIcon },
   { title: 'Settings', to: '/settings', icon: Settings },
 ]
 

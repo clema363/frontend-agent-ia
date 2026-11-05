@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import { ExternalLink, FlaskConical, RotateCcw } from 'lucide-react'
+import { AIOrbIcon } from '@/components/icons/ai-orb-icon'
 import { PromptInput } from '@/components/ai/prompt-input'
 import { QuestionPrompt } from '@/components/ai/question-prompt'
 import { AgentActivity } from '@/components/kanban/agent-activity'
@@ -626,6 +627,32 @@ function OrbColorSection() {
   )
 }
 
+// 9 — Line icon of the orb, for the nav and other monochrome spots.
+function OrbIconSection() {
+  return (
+    <section id="orb-icon" className="scroll-mt-16 space-y-4 border-t pt-10">
+      <header>
+        <h2 className="text-lg font-semibold tracking-tight">Icône de l’orb</h2>
+        <p className="text-sm text-muted-foreground">Version SVG monochrome de l’AI Orb Face, au format des icônes lucide (24 px, trait, currentColor). Utilisée pour « AI Lab » dans la sidebar.</p>
+      </header>
+      <div className="flex flex-wrap items-center gap-8 rounded-2xl border p-6">
+        {[16, 20, 24, 32, 48].map((size) => (
+          <div key={size} className="flex flex-col items-center gap-2">
+            <AIOrbIcon size={size} />
+            <span className="text-[10px] text-muted-foreground">{size}px</span>
+          </div>
+        ))}
+        <div className="flex items-center gap-2 rounded-md bg-muted px-2.5 py-1.5 text-sm">
+          <AIOrbIcon className="size-4" /> AI Lab
+        </div>
+        <div className="flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm text-muted-foreground">
+          <FlaskConical className="size-4" /> à côté d’une icône lucide
+        </div>
+      </div>
+    </section>
+  )
+}
+
 const sections = [
   { id: 'blocks', label: 'Composants IA' },
   { id: 'drafting', label: 'Rédaction' },
@@ -636,12 +663,13 @@ const sections = [
   { id: 'opencode', label: 'OpenCode' },
   { id: 'merge-request', label: 'Merge request' },
   { id: 'orb-color', label: 'Couleur de l’orb' },
+  { id: 'orb-icon', label: 'Icône de l’orb' },
 ]
 
 export function LabPage() {
   return (
     <>
-      <PageHeader title="AI Lab" icon={FlaskConical} />
+      <PageHeader title="AI Lab" icon={AIOrbIcon} />
       <div className="mx-auto w-full max-w-6xl space-y-10 px-6 py-8">
         <div className="space-y-3">
           <div className="flex items-center gap-4">
@@ -670,6 +698,7 @@ export function LabPage() {
         <OpencodeSection />
         <MergeRequestSection />
         <OrbColorSection />
+        <OrbIconSection />
       </div>
     </>
   )
