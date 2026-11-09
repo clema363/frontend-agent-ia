@@ -36,6 +36,20 @@ import {
 
 const PROJECTS_OPEN_KEY = 'atlas.sidebar.projectsOpen'
 
+// Collapsed rail, Codex-like: a narrow strip of 36px rounded buttons with 20px icons,
+// edge to edge (no group padding) and packed closely. The open sidebar is unchanged.
+const rail = 'group-data-[collapsible=icon]:size-9! group-data-[collapsible=icon]:p-2! group-data-[collapsible=icon]:rounded-lg group-data-[collapsible=icon]:[&_svg]:size-5'
+const railMenu = 'group-data-[collapsible=icon]:gap-1'
+const railGroup = 'group-data-[collapsible=icon]:px-0'
+// Visible only in the rail, to split the nav into groups like Codex does.
+const railSeparator = 'mx-auto my-2 hidden w-5! group-data-[collapsible=icon]:block'
+
+function initials(name?: string) {
+  if (!name) return '?'
+  const words = name.trim().split(/\s+/)
+  return ((words[0]?.[0] ?? '') + (words.length > 1 ? words[words.length - 1][0] : '')).toUpperCase()
+}
+
 // Projects link to the list page; only the chevron folds the project list (persisted, like Aceternity's grouped sidebar).
 // Inside a project, only that project's row is highlighted, not the Projects row.
 function ProjectsNavItem() {
@@ -52,7 +66,7 @@ function ProjectsNavItem() {
 
   return (
     <SidebarMenuItem>
-      <SidebarMenuButton isActive={pathname === '/projects'} tooltip="Projects" render={<NavLink to="/projects" end />}>
+      <SidebarMenuButton className={rail} isActive={pathname === '/projects'} tooltip="Projects" render={<NavLink to="/projects" end />}>
         <FolderOpen />
         <span>Projects</span>
       </SidebarMenuButton>
@@ -92,17 +106,22 @@ function ProjectsNavItem() {
   )
 }
 
-const navItems = [
-  { title: 'Dashboard', to: '/', icon: LayoutDashboard },
-  { title: 'Projects', to: '/projects', icon: FolderOpen },
-  { title: 'Kanban', to: '/kanban', icon: SquareKanban },
-  { title: 'Story chat', to: '/chat', icon: MessagesSquare },
-  { title: 'Insights', to: '/insights', icon: ChartLine },
-  { title: 'Editor', to: '/editor', icon: Code2 },
-  { title: 'Journal', to: '/journal', icon: ScrollText },
-  { title: 'Schéma', to: '/schema', icon: Workflow },
-  { title: 'AI Lab', to: '/lab', icon: AIOrbIcon },
-  { title: 'Settings', to: '/settings', icon: Settings },
+// Two groups: the day-to-day work, then the tools. The rail shows a short line between them.
+const navGroups = [
+  [
+    { title: 'Dashboard', to: '/', icon: LayoutDashboard },
+    { title: 'Projects', to: '/projects', icon: FolderOpen },
+    { title: 'Kanban', to: '/kanban', icon: SquareKanban },
+    { title: 'Story chat', to: '/chat', icon: MessagesSquare },
+    { title: 'Insights', to: '/insights', icon: ChartLine },
+  ],
+  [
+    { title: 'Editor', to: '/editor', icon: Code2 },
+    { title: 'Journal', to: '/journal', icon: ScrollText },
+    { title: 'Schéma', to: '/schema', icon: Workflow },
+    { title: 'AI Lab', to: '/lab', icon: AIOrbIcon },
+    { title: 'Settings', to: '/settings', icon: Settings },
+  ],
 ]
 
 export function AppSidebar() {
@@ -111,54 +130,64 @@ export function AppSidebar() {
 
   return (
     <Sidebar variant="inset" collapsible="icon">
-      <SidebarHeader>
+      <SidebarHeader className={railGroup}>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" render={<NavLink to="/" />}>
+            <SidebarMenuButton size="lg" className="group-data-[collapsible=icon]:size-9! group-data-[collapsible=icon]:justify-center" render={<NavLink to="/" />}>
               <div className="flex aspect-square size-7 items-center justify-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground">
                 <Loader className="size-4" />
               </div>
-              <span className="text-sm font-semibold">Atlas</span>
+              <span className="text-sm font-semibold group-data-[collapsible=icon]:hidden">Atlas</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
 
       <SidebarContent>
-        <SidebarGroup>
+        <SidebarGroup className={railGroup}>
           <SidebarGroupContent>
-            <SidebarMenu>
-              {navItems.map((item) => item.to === '/projects' ? <ProjectsNavItem key={item.to} /> : (
-                <SidebarMenuItem key={item.to}>
-                  <SidebarMenuButton
-                    isActive={item.to === '/' ? pathname === '/' : pathname.startsWith(item.to)}
-                    tooltip={item.title}
-                    render={<NavLink to={item.to} end />}
-                  >
-                    <item.icon />
-                    <span>{item.title}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
+            {navGroups.map((items, index) => (
+              <div key={index}>
+                {index > 0 && <SidebarSeparator className={railSeparator} />}
+                <SidebarMenu className={railMenu}>
+                  {items.map((item) => item.to === '/projects' ? <ProjectsNavItem key={item.to} /> : (
+                    <SidebarMenuItem key={item.to}>
+                      <SidebarMenuButton
+                        className={rail}
+                        isActive={item.to === '/' ? pathname === '/' : pathname.startsWith(item.to)}
+                        tooltip={item.title}
+                        render={<NavLink to={item.to} end />}
+                      >
+                        <item.icon />
+                        <span>{item.title}</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </div>
+            ))}
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarSeparator />
+      <SidebarSeparator className="group-data-[collapsible=icon]:hidden" />
 
-      <SidebarFooter>
-        <SidebarMenu>
+      <SidebarFooter className={railGroup}>
+        <SidebarMenu className={railMenu}>
           <SidebarMenuItem>
-            <SidebarMenuButton tooltip="Profile" isActive={pathname === '/profile'} render={<NavLink to="/profile" />}>
-              <User />
-              <span>Profile</span>
+            <SidebarMenuButton className={rail} tooltip="Sign out" render={<NavLink to="/login" />}>
+              <LogOut />
+              <span>Sign out</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton tooltip="Sign out" render={<NavLink to="/login" />}>
-              <LogOut />
-              <span>Sign out</span>
+            <SidebarMenuButton className={rail} tooltip="Profile" isActive={pathname === '/profile'} render={<NavLink to="/profile" />}>
+              <User className="group-data-[collapsible=icon]:hidden" />
+              {/* In the rail, the profile is the user's initials in a round badge, at the very bottom. */}
+              <span className="hidden size-7 shrink-0 items-center justify-center rounded-full bg-amber-400 text-[11px] font-medium text-amber-950 group-data-[collapsible=icon]:-m-1 group-data-[collapsible=icon]:flex">
+                {initials(me?.name)}
+              </span>
+              <span>Profile</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
