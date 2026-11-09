@@ -9,7 +9,7 @@ import AIMessage from '@/components/smoothui/ai-message'
 import AIOrbFace from '@/components/smoothui/ai-orb-face'
 import AIPromptInput from '@/components/smoothui/ai-prompt-input'
 import AITaskList from '@/components/smoothui/ai-task-list'
-import { DitherBackground } from '@/components/story-chat/dither-background'
+import { DotGridBackground } from '@/components/story-chat/dot-grid-background'
 import { Button } from '@/components/ui/button'
 import {
   buildInsightsTurn,
@@ -79,7 +79,7 @@ export function InsightsPage() {
       />
       {turns.length === 0 ? (
         <div className="relative min-h-0 flex-1">
-          <DitherBackground />
+          <DotGridBackground />
           <div className="relative h-full overflow-hidden">
             <div className="mx-auto flex h-full w-full max-w-3xl flex-col justify-center gap-4 px-6 pb-[10vh]">
               <div className="flex items-center gap-2.5">

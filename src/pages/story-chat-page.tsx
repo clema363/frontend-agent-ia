@@ -15,7 +15,7 @@ import AIReasoning from '@/components/smoothui/ai-reasoning'
 import AITaskList from '@/components/smoothui/ai-task-list'
 import AILoader from '@/components/smoothui/ai-loader'
 import { ChatThreadsNav } from '@/components/story-chat/chat-threads-nav'
-import { DitherBackground } from '@/components/story-chat/dither-background'
+import { DotGridBackground } from '@/components/story-chat/dot-grid-background'
 import { StoryChatHome } from '@/components/story-chat/story-chat-home'
 import { StoryDraftCard } from '@/components/story-chat/story-draft-card'
 import { Badge } from '@/components/ui/badge'
@@ -211,7 +211,7 @@ export function StoryChatPage() {
       <div className="flex min-w-0 flex-1 flex-col">
       {turns.length === 0 ? (
         <div className="relative min-h-0 flex-1">
-          <DitherBackground />
+          <DotGridBackground />
           {/* The welcome screen never scrolls: content is centered and sized to fit the viewport. */}
           <div className="relative h-full overflow-hidden">
             <div className="mx-auto flex h-full w-full max-w-5xl flex-col justify-center gap-8 px-6 py-6">
