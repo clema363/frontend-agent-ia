@@ -171,6 +171,23 @@ export function threadIsRunning(thread: ChatThread) {
   return thread.turns.some((turn) => turn.from === 'agent' && turn.status !== 'done')
 }
 
+const timeFormat = new Intl.RelativeTimeFormat('fr', { numeric: 'auto' })
+export function relativeTime(at: number) {
+  const minutes = Math.round((at - Date.now()) / 60000)
+  if (Math.abs(minutes) < 60) return timeFormat.format(minutes, 'minute')
+  const hours = Math.round(minutes / 60)
+  if (Math.abs(hours) < 24) return timeFormat.format(hours, 'hour')
+  return timeFormat.format(Math.round(hours / 24), 'day')
+}
+
+// The last agent proposal of a chat still waiting for the user's decision, if any.
+export function pendingDecision(thread: ChatThread): AgentTurn | undefined {
+  const last = [...thread.turns].reverse().find((turn): turn is AgentTurn => turn.from === 'agent')
+  if (!last || last.status !== 'done' || last.decision) return undefined
+  if (last.kind === 'drafts' && last.drafts.length === 0) return undefined
+  return last
+}
+
 export function titleFromPrompt(text: string) {
   const clean = text.replace(/\s+/g, ' ').trim()
   return clean.length > 42 ? `${clean.slice(0, 40)}…` : clean

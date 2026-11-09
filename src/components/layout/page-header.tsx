@@ -15,10 +15,12 @@ type PageHeaderProps = {
   actions?: ReactNode
   // Extra context faded in after the title, e.g. the story title once it has scrolled away.
   detail?: { text: string; visible: boolean }
+  // Extra breadcrumb segments after the title (story chat: › project › chat).
+  trail?: ReactNode
 }
 
 // Keep the header separate from the content so it stays still during scroll bounce.
-export function PageHeader({ title, icon: Icon, parent, actions, detail }: PageHeaderProps) {
+export function PageHeader({ title, icon: Icon, parent, actions, detail, trail }: PageHeaderProps) {
   const headerContainer = useContext(PageHeaderContext)
   const header = (
     <header className="flex h-12 items-center gap-2 border-b bg-background px-3">
@@ -43,6 +45,7 @@ export function PageHeader({ title, icon: Icon, parent, actions, detail }: PageH
             {detail.text}
           </span>
         )}
+        {trail}
       </nav>
       {actions && <div className="ml-auto flex items-center gap-2">{actions}</div>}
     </header>

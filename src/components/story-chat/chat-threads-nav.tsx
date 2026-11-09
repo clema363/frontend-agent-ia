@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/sidebar'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import type { ChatThread } from '@/lib/story-chat'
-import { threadIsRunning } from '@/lib/story-chat'
+import { relativeTime, threadIsRunning } from '@/lib/story-chat'
 import { cn } from '@/lib/utils'
 
 type ChatThreadsNavProps = {
@@ -36,15 +36,6 @@ type ChatThreadsNavProps = {
 const CLOSED_KEY = 'atlas.storyChat.closedProjects'
 // Chats shown per project before "Voir plus", like Codex's sidebar.
 const RECENT_LIMIT = 5
-
-const timeFormat = new Intl.RelativeTimeFormat('fr', { numeric: 'auto' })
-function relativeTime(at: number) {
-  const minutes = Math.round((at - Date.now()) / 60000)
-  if (Math.abs(minutes) < 60) return timeFormat.format(minutes, 'minute')
-  const hours = Math.round(minutes / 60)
-  if (Math.abs(hours) < 24) return timeFormat.format(hours, 'hour')
-  return timeFormat.format(Math.round(hours / 24), 'day')
-}
 
 // Secondary navbar of the story chat, built on the same shadcn sidebar parts as the app sidebar:
 // open chats grouped by project, searchable, collapsible to an icon rail.

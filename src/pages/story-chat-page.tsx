@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence } from 'motion/react'
 import { Link, useSearchParams } from 'react-router'
-import { FileText, FolderOpen, MessagesSquare, SquarePen, SquareKanban } from 'lucide-react'
+import { ChevronRight, FileText, FolderOpen, MessagesSquare, SquarePen, SquareKanban } from 'lucide-react'
 import { useProjects, useStories } from '@/api/hooks'
 import { PageHeader } from '@/components/layout/page-header'
 import { Markdown } from '@/components/markdown'
@@ -13,17 +13,23 @@ import AIOrbFace from '@/components/smoothui/ai-orb-face'
 import AIPromptInput from '@/components/smoothui/ai-prompt-input'
 import AIReasoning from '@/components/smoothui/ai-reasoning'
 import AITaskList from '@/components/smoothui/ai-task-list'
+import AILoader from '@/components/smoothui/ai-loader'
 import { ChatThreadsNav } from '@/components/story-chat/chat-threads-nav'
+import { DitherBackground } from '@/components/story-chat/dither-background'
+import { StoryChatHome } from '@/components/story-chat/story-chat-home'
 import { StoryDraftCard } from '@/components/story-chat/story-draft-card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   buildDraftTurn,
   buildEditTurn,
   chatSuggestions,
   loadThreads,
+  pendingDecision,
+  relativeTime,
   saveThreads,
   simulateAgentReply,
   titleFromPrompt,
@@ -174,7 +180,13 @@ export function StoryChatPage() {
       <PageHeader
         title="Story chat"
         icon={MessagesSquare}
-        detail={thread ? { text: thread.title, visible: true } : undefined}
+        trail={
+          <ChatBreadcrumb
+            projectName={projects.find((p) => p.id === projectId)?.name}
+            thread={thread}
+            onRename={(title) => thread && patchThread(thread.id, (item) => ({ ...item, title }))}
+          />
+        }
       />
       <div className="flex min-h-0 flex-1">
       <ChatThreadsNav
@@ -193,7 +205,9 @@ export function StoryChatPage() {
       />
       <div className="flex min-w-0 flex-1 flex-col">
       {turns.length === 0 ? (
-        <div className="flex flex-1 flex-col items-center justify-center gap-6 px-4 pb-16">
+        <div className="relative flex flex-1 flex-col items-center overflow-y-auto px-4">
+          <DitherBackground />
+          <div className="relative flex w-full flex-1 flex-col items-center justify-center gap-6 py-12">
           <AIOrbFace size={112} state="idle" />
           <div className="space-y-1.5 text-center">
             <h2 className="text-2xl font-semibold tracking-tight">Qu’est-ce qu’on écrit aujourd’hui ?</h2>
@@ -205,11 +219,13 @@ export function StoryChatPage() {
             {composer}
             <div className="flex flex-wrap justify-center gap-2" aria-label="Suggestions">
               {chatSuggestions.map((suggestion) => (
-                <Button key={suggestion.id} variant="outline" size="sm" className="rounded-full font-normal" onClick={() => send(suggestion.label)}>
+                <Button key={suggestion.id} variant="outline" size="sm" className="rounded-full bg-background/60 font-normal backdrop-blur-md" onClick={() => send(suggestion.label)}>
                   {suggestion.label}
                 </Button>
               ))}
             </div>
+          </div>
+          <StoryChatHome threads={threads} projects={projects} onSelect={(id) => navigate({ chat: id, us: null, project: null })} />
           </div>
         </div>
       ) : (
@@ -234,6 +250,56 @@ export function StoryChatPage() {
       </div>
       </div>
     </div>
+  )
+}
+
+// Header trail like T3 Code: › project › chat title (click to rename) › linked story and agent status.
+function ChatBreadcrumb({ projectName, thread, onRename }: { projectName?: string; thread?: ChatThread; onRename: (title: string) => void }) {
+  const [renaming, setRenaming] = useState(false)
+  if (!projectName) return null
+  const running = thread?.turns.some((turn) => turn.from === 'agent' && turn.status !== 'done')
+  const pending = thread && pendingDecision(thread)
+  const separator = <ChevronRight className="size-3.5 shrink-0 text-muted-foreground/60" aria-hidden="true" />
+  return (
+    <>
+      {separator}
+      <span className="flex shrink-0 items-center gap-1.5 text-muted-foreground">
+        <FolderOpen className="size-3.5" aria-hidden="true" />
+        <span className="max-w-40 truncate">{projectName}</span>
+      </span>
+      {separator}
+      {!thread ? (
+        <span className="text-muted-foreground">Nouveau chat</span>
+      ) : renaming ? (
+        <Input
+          autoFocus
+          defaultValue={thread.title}
+          aria-label="Nom du chat"
+          className="h-7 w-64"
+          onBlur={(event) => { onRename(event.target.value.trim() || thread.title); setRenaming(false) }}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') event.currentTarget.blur()
+            if (event.key === 'Escape') setRenaming(false)
+          }}
+        />
+      ) : (
+        <button type="button" title="Renommer" onClick={() => setRenaming(true)} className="min-w-0 truncate rounded px-1 -mx-1 font-medium hover:bg-accent">
+          {thread.title}
+        </button>
+      )}
+      {thread && (
+        <span className="ml-1 flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground">
+          {thread.storyKey && <Badge variant="secondary" className="font-mono">{thread.storyKey}</Badge>}
+          {running ? (
+            <span className="flex items-center gap-1.5"><AILoader variant="dots" label="L’agent travaille" className="scale-75" /> L’agent travaille</span>
+          ) : pending ? (
+            <Badge variant="outline" className="gap-1.5"><span className="size-1.5 rounded-full bg-amber-500" />À valider</Badge>
+          ) : (
+            <span>{relativeTime(thread.updatedAt)}</span>
+          )}
+        </span>
+      )}
+    </>
   )
 }
 
