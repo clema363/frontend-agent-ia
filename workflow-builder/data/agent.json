@@ -1,0 +1,86 @@
+{
+  "name": "Agent support client",
+  "description": "Répond aux questions des clients et escalade vers un humain si besoin.",
+  "nodes": [
+    {
+      "id": "chat",
+      "kind": "trigger",
+      "label": "Message reçu",
+      "description": "Chat du site",
+      "status": "success",
+      "config": { "source": "widget", "langue": "fr" }
+    },
+    {
+      "id": "agent",
+      "kind": "agent",
+      "label": "Agent support",
+      "description": "Analyse la demande et choisit les outils",
+      "status": "running",
+      "config": {
+        "systemPrompt": "Tu es un agent de support. Réponds en français, de façon concise.",
+        "maxIterations": 5
+      }
+    },
+    {
+      "id": "model",
+      "kind": "model",
+      "label": "Claude",
+      "description": "claude-sonnet-5-5",
+      "config": { "model": "claude-sonnet-5-5", "temperature": 0.2 }
+    },
+    {
+      "id": "memory",
+      "kind": "memory",
+      "label": "Mémoire",
+      "description": "10 derniers messages",
+      "config": { "type": "window", "taille": 10 }
+    },
+    {
+      "id": "search",
+      "kind": "tool",
+      "label": "Docs",
+      "description": "Recherche dans la doc",
+      "config": { "index": "docs-produit", "topK": 5 }
+    },
+    {
+      "id": "ticket",
+      "kind": "tool",
+      "label": "Ticket",
+      "description": "Crée un ticket",
+      "config": { "service": "Linear", "équipe": "Support" }
+    },
+    {
+      "id": "escalade",
+      "kind": "condition",
+      "label": "Escalade ?",
+      "description": "confiance < 0.6",
+      "status": "idle",
+      "config": { "condition": "{{agent.confidence}} < 0.6" }
+    },
+    {
+      "id": "reply",
+      "kind": "output",
+      "label": "Répondre au client",
+      "description": "Envoie la réponse dans le chat",
+      "status": "idle"
+    },
+    {
+      "id": "human",
+      "kind": "action",
+      "label": "Notifier un humain",
+      "description": "Message Slack #support",
+      "status": "idle",
+      "config": { "canal": "#support" }
+    }
+  ],
+  "edges": [
+    { "source": "chat", "target": "agent" },
+    { "source": "agent", "target": "model", "kind": "model" },
+    { "source": "agent", "target": "memory", "kind": "memory" },
+    { "source": "agent", "target": "search", "kind": "tool" },
+    { "source": "agent", "target": "ticket", "kind": "tool" },
+    { "source": "agent", "target": "escalade" },
+    { "source": "escalade", "target": "reply", "label": "non" },
+    { "source": "escalade", "target": "human", "label": "oui" }
+  ]
+}
