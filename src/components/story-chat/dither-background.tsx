@@ -31,9 +31,10 @@ function paintAurora(dark: boolean) {
   ctx.save()
   ctx.filter = 'blur(60px)'
   // Descends from the top left to the right edge, like a horizon seen from orbit.
-  ctx.translate(width * 0.5, height * 0.42)
-  ctx.rotate(0.36)
-  const band = 640
+  // Kept high and thin so it sits behind the title and composer, not the whole screen.
+  ctx.translate(width * 0.5, height * 0.3)
+  ctx.rotate(0.3)
+  const band = 380
   const gradient = ctx.createLinearGradient(0, -band / 2, 0, band / 2)
   // Blue only, to match the app's accent: navy edges, bright core, a pale highlight in the middle.
   const stops: [number, string][] = dark
@@ -67,8 +68,8 @@ function paintAurora(dark: boolean) {
   const pixels = image.data
   for (let i = 0; i < pixels.length; i += 4) {
     const grain = Math.random()
-    if (grain > 0.82) {
-      const strength = (grain - 0.82) * (dark ? 220 : -120)
+    if (grain > 0.9) {
+      const strength = (grain - 0.9) * (dark ? 200 : -90)
       pixels[i] += strength * 0.35
       pixels[i + 1] += strength * 0.55
       pixels[i + 2] += strength
@@ -95,8 +96,8 @@ export function DitherBackground({ className }: { className?: string }) {
         fit="cover"
         style={{ width: '100%', height: '100%' }}
       />
-      {/* Light vignette only: the texture stays visible behind the glass panels. */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_55%,color-mix(in_oklch,var(--background)_70%,transparent)_100%)]" />
+      {/* Fades out from mid-screen so the cards sit on the plain page. */}
+      <div className="absolute inset-0 bg-linear-to-b from-transparent from-35% to-background to-80%" />
     </div>
   )
 }
