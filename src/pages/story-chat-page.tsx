@@ -144,8 +144,10 @@ export function StoryChatPage() {
     ...projectStories.map((item) => ({ value: item.id, label: `${item.key} · ${item.title}` })),
   ]
 
-  const composer = (
+  // On the welcome screen the composer is a frosted panel over the dithered backdrop.
+  const composer = (glass = false) => (
     <AIPromptInput
+      className={glass ? 'border-foreground/15 bg-transparent' : undefined}
       aria-label="Message to the story agent"
       placeholder={story ? `Que veux-tu changer sur ${story.key} ?` : 'Décris le besoin, je rédige les user stories…'}
       state={orbState === 'done' ? 'idle' : orbState}
@@ -208,27 +210,35 @@ export function StoryChatPage() {
       />
       <div className="flex min-w-0 flex-1 flex-col">
       {turns.length === 0 ? (
-        <div className="relative flex flex-1 flex-col items-center overflow-y-auto px-4">
+        <div className="relative min-h-0 flex-1">
           <DitherBackground />
-          <div className="relative flex w-full flex-1 flex-col items-center justify-center gap-6 py-12">
-          <AIOrbFace size={112} state="idle" />
-          <div className="space-y-1.5 text-center">
-            <h2 className="text-2xl font-semibold tracking-tight">Qu’est-ce qu’on écrit aujourd’hui ?</h2>
-            <p className="text-sm text-muted-foreground">
-              Décris un besoin pour générer plusieurs user stories, ou choisis une US pour la modifier directement.
-            </p>
-          </div>
-          <div className="w-full max-w-2xl space-y-4">
-            {composer}
-            <div className="flex flex-wrap justify-center gap-2" aria-label="Suggestions">
-              {chatSuggestions.map((suggestion) => (
-                <Button key={suggestion.id} variant="outline" size="sm" className="rounded-full bg-background/60 font-normal backdrop-blur-md" onClick={() => send(suggestion.label)}>
-                  {suggestion.label}
-                </Button>
-              ))}
+          {/* The welcome screen never scrolls: content is centered and sized to fit the viewport. */}
+          <div className="relative h-full overflow-hidden">
+            <div className="mx-auto flex h-full w-full max-w-5xl flex-col justify-center gap-8 px-6 py-6">
+              <div className="mx-auto flex w-full max-w-3xl flex-col gap-4">
+                <div className="flex items-center gap-2.5">
+                  <AIOrbFace size={30} state="idle" />
+                  <h2 className="text-2xl font-medium tracking-tight">Story chat</h2>
+                </div>
+                <div className="rounded-2xl bg-background/70 shadow-[0_12px_48px_-12px_rgb(0_0_0/0.6)] backdrop-blur-2xl backdrop-saturate-150">{composer(true)}</div>
+                {/* One row, as wide as the composer. */}
+                <div className="flex gap-2" aria-label="Suggestions">
+                  {chatSuggestions.map((suggestion) => (
+                    <Button
+                      key={suggestion.id}
+                      variant="ghost"
+                      size="sm"
+                      title={suggestion.label}
+                      className="glass min-w-0 flex-1 justify-center rounded-full font-normal text-foreground/80 hover:bg-background/60 hover:text-foreground"
+                      onClick={() => send(suggestion.label)}
+                    >
+                      <span className="truncate">{suggestion.label}</span>
+                    </Button>
+                  ))}
+                </div>
+              </div>
+              <StoryChatHome threads={threads} projects={projects} onSelect={(id) => navigate({ chat: id, us: null, project: null })} />
             </div>
-          </div>
-          <StoryChatHome threads={threads} projects={projects} onSelect={(id) => navigate({ chat: id, us: null, project: null })} />
           </div>
         </div>
       ) : (
@@ -247,7 +257,7 @@ export function StoryChatPage() {
               )}
             </div>
           </AIConversation>
-          <div className="mx-auto w-full max-w-3xl px-4 pb-4">{composer}</div>
+          <div className="mx-auto w-full max-w-3xl px-4 pb-4">{composer()}</div>
         </>
       )}
       </div>

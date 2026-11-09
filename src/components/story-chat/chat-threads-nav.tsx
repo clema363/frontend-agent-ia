@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronRight, FolderOpen, MoreHorizontal, PanelLeftClose, PanelLeftOpen, Pencil, Plus, Search, Trash2 } from 'lucide-react'
 import AILoader from '@/components/smoothui/ai-loader'
-import AIOrbFace from '@/components/smoothui/ai-orb-face'
 import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
@@ -18,7 +17,7 @@ import {
 } from '@/components/ui/sidebar'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import type { ChatThread } from '@/lib/story-chat'
-import { relativeTime, threadIsRunning } from '@/lib/story-chat'
+import { pendingDecision, relativeTime, threadIsRunning } from '@/lib/story-chat'
 import { cn } from '@/lib/utils'
 
 type ChatThreadsNavProps = {
@@ -84,15 +83,44 @@ export function ChatThreadsNav({ threads, projects, activeId, collapsed, onToggl
   }, [threads, query])
 
   if (collapsed) {
+    // Folded rail: one square per project (most recent first) instead of one face per chat.
+    // A dot tells when its agent works (blue) or a proposal waits (amber); a click opens its latest chat.
+    const railProjects: { projectId: string; latest: ChatThread; count: number; running: boolean; pending: boolean }[] = []
+    for (const thread of [...threads].sort((a, b) => b.updatedAt - a.updatedAt)) {
+      let entry = railProjects.find((item) => item.projectId === thread.projectId)
+      if (!entry) {
+        entry = { projectId: thread.projectId, latest: thread, count: 0, running: false, pending: false }
+        railProjects.push(entry)
+      }
+      entry.count += 1
+      entry.running ||= threadIsRunning(thread)
+      entry.pending ||= Boolean(pendingDecision(thread))
+    }
     return (
       <aside className="flex h-full w-14 shrink-0 flex-col items-center gap-1 border-r bg-sidebar py-3">
         <RailButton label="Déplier les chats" onClick={onToggleCollapsed}><PanelLeftOpen /></RailButton>
         <RailButton label="Nouveau chat" onClick={() => onNewChat()}><Plus /></RailButton>
         <RailButton label="Rechercher" onClick={() => { onToggleCollapsed(); requestAnimationFrame(() => searchRef.current?.focus()) }}><Search /></RailButton>
         <div className="my-1 h-px w-6 bg-sidebar-border" />
-        {threads.slice(0, 8).map((thread) => (
-          <RailButton key={thread.id} label={thread.title} onClick={() => onSelect(thread.id)} active={thread.id === activeId}>
-            <AIOrbFace size={20} gaze={false} state={threadIsRunning(thread) ? 'thinking' : 'idle'} />
+        {railProjects.map(({ projectId, latest, count, running, pending }) => (
+          <RailButton
+            key={projectId}
+            label={`${projectName(projectId)} · ${count} chat${count > 1 ? 's' : ''}${running ? ' · l’agent travaille' : pending ? ' · à valider' : ''}`}
+            onClick={() => onSelect(latest.id)}
+            active={projectId === activeProject}
+          >
+            <span className="relative">
+              <ProjectAvatar name={projectName(projectId)} />
+              {(running || pending) && (
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    'absolute -top-0.5 -right-0.5 size-2 rounded-full ring-2 ring-sidebar',
+                    running ? 'animate-pulse bg-blue-500' : 'bg-amber-500',
+                  )}
+                />
+              )}
+            </span>
           </RailButton>
         ))}
       </aside>
@@ -218,6 +246,18 @@ export function ChatThreadsNav({ threads, projects, activeId, collapsed, onToggl
         ))}
       </nav>
     </aside>
+  )
+}
+
+// Square with the project's initial, tinted from its name so each project keeps its color.
+const avatarColors = ['bg-blue-500', 'bg-violet-500', 'bg-emerald-500', 'bg-orange-500', 'bg-pink-500', 'bg-teal-500']
+function ProjectAvatar({ name }: { name: string }) {
+  const hash = [...name].reduce((sum, char) => sum + char.charCodeAt(0), 0)
+  const initial = name.replace(/^[^a-zA-Z]+/, '').charAt(0).toUpperCase() || '?'
+  return (
+    <span aria-hidden="true" className={cn('flex size-6 items-center justify-center rounded-md text-xs font-semibold text-white', avatarColors[hash % avatarColors.length])}>
+      {initial}
+    </span>
   )
 }
 

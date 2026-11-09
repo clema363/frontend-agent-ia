@@ -215,6 +215,17 @@
     -webkit-font-smoothing: antialiased;
     }
 }
+/* Frosted panel over the dithered backdrop (story chat home): see-through, blurred, thin light edge. */
+@utility glass {
+  background: color-mix(in oklch, var(--background) 42%, transparent);
+  backdrop-filter: blur(18px) saturate(1.5);
+  -webkit-backdrop-filter: blur(18px) saturate(1.5);
+  border: 1px solid color-mix(in oklch, var(--foreground) 9%, transparent);
+  box-shadow:
+    0 10px 40px -12px rgb(0 0 0 / 0.45),
+    inset 0 1px 0 color-mix(in oklch, white 7%, transparent);
+}
+
 /* Text with a light sweeping across it, for an agent at work. */
 @utility text-shimmer {
   background: linear-gradient(90deg, var(--muted-foreground) 35%, var(--foreground) 50%, var(--muted-foreground) 65%);

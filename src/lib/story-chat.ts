@@ -46,7 +46,6 @@ export const chatSuggestions = [
   { id: 'auth', label: 'Écris 3 US pour la connexion SSO' },
   { id: 'export', label: 'Découpe "export PDF des factures" en US' },
   { id: 'notif', label: 'US pour les notifications par email' },
-  { id: 'edit', label: 'Ajoute des critères d’acceptation à l’US' },
 ]
 
 const personas = ['utilisateur', 'administrateur', 'chef de projet']

@@ -29,10 +29,11 @@ function paintAurora(dark: boolean) {
   ctx.fillRect(0, 0, width, height)
 
   ctx.save()
-  ctx.filter = 'blur(70px)'
-  ctx.translate(width * 0.55, height * 0.32)
-  ctx.rotate(-0.42)
-  const band = 520
+  ctx.filter = 'blur(60px)'
+  // Descends from the top left to the right edge, like a horizon seen from orbit.
+  ctx.translate(width * 0.5, height * 0.42)
+  ctx.rotate(0.36)
+  const band = 640
   const gradient = ctx.createLinearGradient(0, -band / 2, 0, band / 2)
   // Blue only, to match the app's accent: navy edges, bright core, a pale highlight in the middle.
   const stops: [number, string][] = dark
@@ -60,11 +61,26 @@ function paintAurora(dark: boolean) {
   ctx.fillRect(-width * 1.2, -band / 2, width * 2.4, band)
   ctx.restore()
 
+  // Faint colored speckle everywhere: once dithered it gives the grainy night-sky texture
+  // instead of flat black around the band.
+  const image = ctx.getImageData(0, 0, width, height)
+  const pixels = image.data
+  for (let i = 0; i < pixels.length; i += 4) {
+    const grain = Math.random()
+    if (grain > 0.82) {
+      const strength = (grain - 0.82) * (dark ? 220 : -120)
+      pixels[i] += strength * 0.35
+      pixels[i + 1] += strength * 0.55
+      pixels[i + 2] += strength
+    }
+  }
+  ctx.putImageData(image, 0, 0)
+
   return canvas.toDataURL('image/png')
 }
 
-// Dithered aurora backdrop of the story chat welcome screen, faded into the page on every side
-// so the composer and cards stay readable.
+// Dithered aurora backdrop (Devin-like), full bleed behind the welcome screen.
+// Content on top uses the `glass` panels so it stays readable.
 export function DitherBackground({ className }: { className?: string }) {
   const dark = useIsDark()
   const image = useMemo(() => paintAurora(dark), [dark])
@@ -75,12 +91,12 @@ export function DitherBackground({ className }: { className?: string }) {
         originalColors
         type="4x4"
         size={2}
-        colorSteps={3}
+        colorSteps={4}
         fit="cover"
         style={{ width: '100%', height: '100%' }}
       />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_35%,var(--background)_85%)]" />
-      <div className="absolute inset-x-0 bottom-0 h-1/2 bg-linear-to-t from-background to-transparent" />
+      {/* Light vignette only: the texture stays visible behind the glass panels. */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_55%,color-mix(in_oklch,var(--background)_70%,transparent)_100%)]" />
     </div>
   )
 }

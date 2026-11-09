@@ -53,8 +53,9 @@ export function InsightsPage() {
     setTurns([])
   }
 
-  const composer = (
+  const composer = (glass = false) => (
     <AIPromptInput
+      className={glass ? 'border-foreground/15 bg-transparent' : undefined}
       aria-label="Question sur l’usage"
       placeholder="Pose une question sur l’usage : tokens, chats, agents, projets…"
       state={orbState}
@@ -77,19 +78,24 @@ export function InsightsPage() {
         }
       />
       {turns.length === 0 ? (
-        <div className="relative flex flex-1 flex-col items-center overflow-y-auto px-4">
+        <div className="relative min-h-0 flex-1">
           <DitherBackground />
-          <div className="relative flex w-full flex-1 flex-col items-center justify-center gap-6 py-12">
-            <AIOrbFace size={112} state="idle" />
-            <div className="space-y-1.5 text-center">
-              <h2 className="text-2xl font-semibold tracking-tight">Qu’est-ce qu’on analyse ?</h2>
-              <p className="text-sm text-muted-foreground">Pose une question, la réponse arrive sous forme de chiffres clés, de graphiques et de tableaux.</p>
-            </div>
-            <div className="w-full max-w-2xl space-y-4">
-              {composer}
-              <div className="flex flex-wrap justify-center gap-2" aria-label="Suggestions">
+          <div className="relative h-full overflow-hidden">
+            <div className="mx-auto flex h-full w-full max-w-3xl flex-col justify-center gap-4 px-6 pb-[10vh]">
+              <div className="flex items-center gap-2.5">
+                <AIOrbFace size={30} state="idle" />
+                <h2 className="text-2xl font-medium tracking-tight">Insights</h2>
+              </div>
+              <div className="rounded-2xl bg-background/70 shadow-[0_12px_48px_-12px_rgb(0_0_0/0.6)] backdrop-blur-2xl backdrop-saturate-150">{composer(true)}</div>
+              <div className="flex flex-wrap gap-2" aria-label="Suggestions">
                 {insightsSuggestions.map((suggestion) => (
-                  <Button key={suggestion} variant="outline" size="sm" className="rounded-full bg-background/60 font-normal backdrop-blur-md" onClick={() => send(suggestion)}>
+                  <Button
+                    key={suggestion}
+                    variant="ghost"
+                    size="sm"
+                    className="glass rounded-full font-normal text-foreground/80 hover:bg-background/60 hover:text-foreground"
+                    onClick={() => send(suggestion)}
+                  >
                     {suggestion}
                   </Button>
                 ))}
@@ -115,7 +121,7 @@ export function InsightsPage() {
               )}
             </div>
           </AIConversation>
-          <div className="mx-auto w-full max-w-4xl px-4 pb-4">{composer}</div>
+          <div className="mx-auto w-full max-w-4xl px-4 pb-4">{composer()}</div>
         </>
       )}
     </div>
