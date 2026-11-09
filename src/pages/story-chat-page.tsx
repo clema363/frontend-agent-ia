@@ -27,6 +27,7 @@ import {
   buildDraftTurn,
   buildEditTurn,
   chatSuggestions,
+  adoptExampleThreads,
   loadThreads,
   pendingDecision,
   relativeTime,
@@ -50,6 +51,8 @@ export function StoryChatPage() {
 
   const [threads, setThreads] = useState<ChatThread[]>(loadThreads)
   useEffect(() => saveThreads(threads), [threads])
+  // Example chats follow whatever projects the backend returns (fixtures or FastAPI).
+  useEffect(() => setThreads((current) => adoptExampleThreads(current, projects, stories)), [projects, stories])
   const [navCollapsed, setNavCollapsed] = useState(() => localStorage.getItem(NAV_COLLAPSED_KEY) === 'true')
 
   // Each chat replies on its own: several agents can work in parallel.

@@ -14,7 +14,7 @@ function useIsDark() {
   return dark
 }
 
-// Paints the source picture once: a diagonal aurora band (deep blue → white → orange → red)
+// Paints the source picture once: a diagonal aurora band in shades of blue
 // on the page background. The shader then turns it into the pixel dither.
 function paintAurora(dark: boolean) {
   const width = 1600
@@ -34,24 +34,25 @@ function paintAurora(dark: boolean) {
   ctx.rotate(-0.42)
   const band = 520
   const gradient = ctx.createLinearGradient(0, -band / 2, 0, band / 2)
+  // Blue only, to match the app's accent: navy edges, bright core, a pale highlight in the middle.
   const stops: [number, string][] = dark
     ? [
         [0, 'rgba(9,9,11,0)'],
-        [0.18, '#1e3a8a'],
-        [0.36, '#3b82f6'],
-        [0.48, '#bfdbfe'],
-        [0.53, '#fef3c7'],
-        [0.6, '#f97316'],
-        [0.74, '#b91c1c'],
+        [0.18, '#172554'],
+        [0.34, '#1d4ed8'],
+        [0.46, '#60a5fa'],
+        [0.52, '#dbeafe'],
+        [0.6, '#3b82f6'],
+        [0.76, '#1e3a8a'],
         [1, 'rgba(9,9,11,0)'],
       ]
     : [
         [0, 'rgba(250,250,250,0)'],
-        [0.2, '#bfdbfe'],
-        [0.38, '#60a5fa'],
+        [0.2, '#dbeafe'],
+        [0.38, '#93c5fd'],
         [0.5, '#ffffff'],
-        [0.6, '#fdba74'],
-        [0.76, '#f87171'],
+        [0.62, '#60a5fa'],
+        [0.78, '#bfdbfe'],
         [1, 'rgba(250,250,250,0)'],
       ]
   for (const [offset, color] of stops) gradient.addColorStop(offset, color)

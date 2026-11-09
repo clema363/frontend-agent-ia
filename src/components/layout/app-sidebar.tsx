@@ -14,6 +14,7 @@ import {
   Code2,
   Workflow,
   MessagesSquare,
+  ChartLine,
 } from 'lucide-react'
 import { AIOrbIcon } from '@/components/icons/ai-orb-icon'
 import {
@@ -96,6 +97,7 @@ const navItems = [
   { title: 'Projects', to: '/projects', icon: FolderOpen },
   { title: 'Kanban', to: '/kanban', icon: SquareKanban },
   { title: 'Story chat', to: '/chat', icon: MessagesSquare },
+  { title: 'Insights', to: '/insights', icon: ChartLine },
   { title: 'Editor', to: '/editor', icon: Code2 },
   { title: 'Journal', to: '/journal', icon: ScrollText },
   { title: 'Schéma', to: '/schema', icon: Workflow },

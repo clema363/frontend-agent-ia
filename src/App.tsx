@@ -15,6 +15,7 @@ import { SkillPage } from '@/pages/skill-page'
 import { SchemaPage } from '@/pages/schema-page'
 import { StoryChatPage } from '@/pages/story-chat-page'
 import { LabPage } from '@/pages/lab-page'
+import { InsightsPage } from '@/pages/insights-page'
 
 export default function App() {
   return (
@@ -37,6 +38,7 @@ export default function App() {
         <Route path="/kanban" element={<KanbanPage />} />
         <Route path="/editor" element={<EditorPage />} />
         <Route path="/chat" element={<StoryChatPage />} />
+        <Route path="/insights" element={<InsightsPage />} />
       </Route>
       <Route path="*" element={<NotFoundPage />} />
     </Routes>

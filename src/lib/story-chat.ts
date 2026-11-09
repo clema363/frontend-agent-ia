@@ -199,7 +199,9 @@ const THREADS_KEY = 'atlas.storyChat.threads'
 // A reply interrupted by a reload is closed rather than left spinning forever.
 export function loadThreads(): ChatThread[] {
   try {
-    const threads = JSON.parse(localStorage.getItem(THREADS_KEY) ?? '[]') as ChatThread[]
+    const stored = JSON.parse(localStorage.getItem(THREADS_KEY) ?? '[]') as ChatThread[]
+    // Until real conversations exist, show example chats so the page can be reviewed.
+    const threads = stored.length ? stored : exampleThreads()
     return threads.map((thread) => ({
       ...thread,
       turns: thread.turns.map((turn) =>
@@ -215,4 +217,107 @@ export function loadThreads(): ChatThread[] {
 
 export function saveThreads(threads: ChatThread[]) {
   localStorage.setItem(THREADS_KEY, JSON.stringify(threads))
+}
+
+// Example chats on the demo projects (p-6804 cashgpt, p-7120 treasury portal), spread over
+// the last weeks so the sidebar, header and activity grid have something to show.
+function exampleThreads(): ChatThread[] {
+  const now = Date.now()
+  const minute = 60_000
+  const day = 86_400_000
+  const finish = (turn: AgentTurn, decision?: string): AgentTurn =>
+    ({ ...turn, status: 'done', thinkingSeconds: 6, tasks: turn.tasks.map((task) => ({ ...task, status: 'done' })), decision }) as AgentTurn
+  const story = (id: string, key: string, title: string) =>
+    ({ id, key, title, raw: `${title}\nEn tant que trésorier, je veux ${title.toLowerCase()}.\nCritères d’acceptation : à définir` }) as UserStory
+
+  const chat = (
+    id: string,
+    projectId: string,
+    prompt: string,
+    ago: number,
+    options: { story?: UserStory; decision?: string; title?: string } = {},
+  ): ChatThread => {
+    const agent = options.story ? buildEditTurn(`${id}-a`, prompt, options.story) : buildDraftTurn(`${id}-a`, prompt)
+    return {
+      id,
+      projectId,
+      storyId: options.story?.id,
+      storyKey: options.story?.key,
+      title: options.title ?? titleFromPrompt(prompt),
+      turns: [
+        { id: `${id}-u`, from: 'user', text: prompt, storyKey: options.story?.key },
+        finish(agent, options.decision),
+      ],
+      createdAt: now - ago,
+      updatedAt: now - ago,
+    }
+  }
+
+  const featured: ChatThread[] = [
+    chat('ex-1', 'p-6804', 'Écris 3 US pour la connexion SSO', 4 * minute, { title: 'Connexion SSO' }),
+    chat('ex-2', 'p-6804', 'Ajoute des critères sur le rejet de paiement', 40 * minute, {
+      story: story('us-118', 'US-118', 'Notify treasurers when a payment is rejected'),
+      title: 'Critères du rejet de paiement',
+    }),
+    chat('ex-3', 'p-6804', 'Découpe "export Excel du journal" en 4 US', 3 * 3_600_000, { decision: 'create', title: 'Export Excel du journal' }),
+    chat('ex-4', 'p-6804', 'Précise le calcul du solde multi-devises', 1 * day, {
+      story: story('us-114', 'US-114', 'Multi-currency balance on the dashboard'),
+      decision: 'accepted',
+      title: 'Solde multi-devises',
+    }),
+    chat('ex-5', 'p-6804', 'US pour les notifications par email', 2 * day, { decision: 'refine', title: 'Notifications email' }),
+    chat('ex-6', 'p-6804', 'Écris 2 US pour filtrer le journal par contrepartie', 4 * day, { decision: 'create', title: 'Filtre par contrepartie' }),
+    chat('ex-7', 'p-6804', 'Découpe "tableau de bord des flux" en US', 6 * day, { decision: 'discard', title: 'Tableau de bord des flux' }),
+    chat('ex-8', 'p-7120', 'Corrige la boucle de login après timeout SSO', 25 * minute, {
+      story: story('us-121', 'US-121', 'Login page loops after SSO timeout'),
+      title: 'Boucle de login SSO',
+    }),
+    chat('ex-9', 'p-7120', 'Écris 3 US pour la validation des virements', 5 * 3_600_000, { decision: 'create', title: 'Validation des virements' }),
+    chat('ex-10', 'p-7120', 'US pour l’import des relevés bancaires', 3 * day, { decision: 'create', title: 'Import des relevés' }),
+  ]
+
+  // Older chats, a few per week, only to fill the activity grid.
+  const topics = ['rapprochement bancaire', 'droits d’accès', 'audit des paiements', 'prévisions de trésorerie', 'alertes de seuil', 'export comptable']
+  const history = Array.from({ length: 34 }, (_, index) =>
+    chat(`ex-h${index}`, index % 3 ? 'p-6804' : 'p-7120', `US pour ${topics[index % topics.length]}`, (8 + Math.floor(index * 3.6 + (index % 4))) * day, {
+      decision: index % 5 === 0 ? 'discard' : 'create',
+    }),
+  )
+  return [...featured, ...history]
+}
+
+// Example chats point to the fixture projects. Against the real backend those ids do not exist,
+// so they are moved onto the projects and stories actually loaded. Real chats are never touched.
+export function adoptExampleThreads(
+  threads: ChatThread[],
+  projects: { id: string }[],
+  stories: Pick<UserStory, 'id' | 'key' | 'projectId'>[],
+): ChatThread[] {
+  if (projects.length === 0) return threads
+  const projectIds = new Set(projects.map((project) => project.id))
+  const fixtureProjects = ['p-6804', 'p-7120']
+  let changed = false
+  const next = threads.map((thread) => {
+    if (!thread.id.startsWith('ex-')) return thread
+    let { projectId, storyId, storyKey } = thread
+    if (!projectIds.has(projectId)) {
+      const slot = Math.max(0, fixtureProjects.indexOf(projectId))
+      projectId = projects[slot % projects.length].id
+    }
+    if (storyId && !stories.some((story) => story.id === storyId && story.projectId === projectId)) {
+      const candidates = stories.filter((story) => story.projectId === projectId)
+      const picked = candidates.length ? candidates[thread.id.length % candidates.length] : undefined
+      storyId = picked?.id
+      storyKey = picked?.key
+    }
+    if (projectId === thread.projectId && storyId === thread.storyId) return thread
+    changed = true
+    const turns = thread.turns.map((turn) => {
+      if (turn.from === 'user') return { ...turn, storyKey }
+      if (turn.kind === 'edit' && storyKey) return { ...turn, story: { ...turn.story, id: storyId!, key: storyKey } }
+      return turn
+    })
+    return { ...thread, projectId, storyId, storyKey, turns }
+  })
+  return changed ? next : threads
 }
