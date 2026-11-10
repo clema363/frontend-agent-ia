@@ -1,22 +1,22 @@
 import { useState } from 'react'
 import { NavLink, useLocation } from 'react-router'
 import { useMe, useProjects } from '@/api/hooks'
+import type { ComponentType } from 'react'
+import { ChevronRight, Loader } from 'lucide-react'
 import {
-  ChevronRight,
-  FolderOpen,
-  LayoutDashboard,
-  LogOut,
-  ScrollText,
-  Settings,
-  SquareKanban,
-  User,
-  Loader,
-  Code2,
-  Workflow,
-  MessagesSquare,
   ChartLine,
-} from 'lucide-react'
-import { AIOrbIcon } from '@/components/icons/ai-orb-icon'
+  ChatsCircle,
+  Code,
+  FolderOpen,
+  GearSix,
+  Kanban,
+  Scroll,
+  SignOut,
+  SquaresFour,
+  TreeStructure,
+  User,
+} from '@phosphor-icons/react'
+import { AIOrbNavIcon } from '@/components/icons/ai-orb-icon'
 import {
   Sidebar,
   SidebarContent,
@@ -35,6 +35,11 @@ import {
 } from '@/components/ui/sidebar'
 
 const PROJECTS_OPEN_KEY = 'atlas.sidebar.projectsOpen'
+
+// Codex-like nav icons: outlined by default, solid on the page you are on.
+// Phosphor draws every icon in both weights on the same shapes, so the switch doesn't jump.
+type NavIconType = ComponentType<{ weight?: 'regular' | 'fill'; className?: string }>
+const NavIcon = ({ icon: Icon, active }: { icon: NavIconType; active?: boolean }) => <Icon weight={active ? 'fill' : 'regular'} />
 
 // Collapsed rail, Codex-like: a narrow strip of 36px rounded buttons with 20px icons,
 // edge to edge (no group padding) and packed closely. The open sidebar is unchanged.
@@ -67,7 +72,7 @@ function ProjectsNavItem() {
   return (
     <SidebarMenuItem>
       <SidebarMenuButton className={rail} isActive={pathname === '/projects'} tooltip="Projects" render={<NavLink to="/projects" end />}>
-        <FolderOpen />
+        <NavIcon icon={FolderOpen} active={pathname.startsWith('/projects')} />
         <span>Projects</span>
       </SidebarMenuButton>
       {projects.length > 0 && (
@@ -109,18 +114,18 @@ function ProjectsNavItem() {
 // Two groups: the day-to-day work, then the tools. The rail shows a short line between them.
 const navGroups = [
   [
-    { title: 'Dashboard', to: '/', icon: LayoutDashboard },
+    { title: 'Dashboard', to: '/', icon: SquaresFour },
     { title: 'Projects', to: '/projects', icon: FolderOpen },
-    { title: 'Kanban', to: '/kanban', icon: SquareKanban },
-    { title: 'Story chat', to: '/chat', icon: MessagesSquare },
+    { title: 'Kanban', to: '/kanban', icon: Kanban },
+    { title: 'Story chat', to: '/chat', icon: ChatsCircle },
     { title: 'Insights', to: '/insights', icon: ChartLine },
   ],
   [
-    { title: 'Editor', to: '/editor', icon: Code2 },
-    { title: 'Journal', to: '/journal', icon: ScrollText },
-    { title: 'Schéma', to: '/schema', icon: Workflow },
-    { title: 'AI Lab', to: '/lab', icon: AIOrbIcon },
-    { title: 'Settings', to: '/settings', icon: Settings },
+    { title: 'Editor', to: '/editor', icon: Code },
+    { title: 'Journal', to: '/journal', icon: Scroll },
+    { title: 'Schéma', to: '/schema', icon: TreeStructure },
+    { title: 'AI Lab', to: '/lab', icon: AIOrbNavIcon },
+    { title: 'Settings', to: '/settings', icon: GearSix },
   ],
 ]
 
@@ -130,7 +135,7 @@ export function AppSidebar() {
 
   return (
     <Sidebar variant="inset" collapsible="icon">
-      <SidebarHeader className={railGroup}>
+      <SidebarHeader className="group-data-[collapsible=icon]:hidden">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" className="group-data-[collapsible=icon]:size-9! group-data-[collapsible=icon]:justify-center" render={<NavLink to="/" />}>
@@ -150,19 +155,23 @@ export function AppSidebar() {
               <div key={index}>
                 {index > 0 && <SidebarSeparator className={railSeparator} />}
                 <SidebarMenu className={railMenu}>
-                  {items.map((item) => item.to === '/projects' ? <ProjectsNavItem key={item.to} /> : (
+                  {items.map((item) => {
+                    if (item.to === '/projects') return <ProjectsNavItem key={item.to} />
+                    const active = item.to === '/' ? pathname === '/' : pathname.startsWith(item.to)
+                    return (
                     <SidebarMenuItem key={item.to}>
                       <SidebarMenuButton
                         className={rail}
-                        isActive={item.to === '/' ? pathname === '/' : pathname.startsWith(item.to)}
+                        isActive={active}
                         tooltip={item.title}
                         render={<NavLink to={item.to} end />}
                       >
-                        <item.icon />
+                        <NavIcon icon={item.icon} active={active} />
                         <span>{item.title}</span>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
-                  ))}
+                    )
+                  })}
                 </SidebarMenu>
               </div>
             ))}
@@ -176,13 +185,13 @@ export function AppSidebar() {
         <SidebarMenu className={railMenu}>
           <SidebarMenuItem>
             <SidebarMenuButton className={rail} tooltip="Sign out" render={<NavLink to="/login" />}>
-              <LogOut />
+              <SignOut />
               <span>Sign out</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton className={rail} tooltip="Profile" isActive={pathname === '/profile'} render={<NavLink to="/profile" />}>
-              <User className="group-data-[collapsible=icon]:hidden" />
+              <User weight={pathname === '/profile' ? 'fill' : 'regular'} className="group-data-[collapsible=icon]:hidden" />
               {/* In the rail, the profile is the user's initials in a round badge, at the very bottom. */}
               <span className="hidden size-7 shrink-0 items-center justify-center rounded-full bg-amber-400 text-[11px] font-medium text-amber-950 group-data-[collapsible=icon]:-m-1 group-data-[collapsible=icon]:flex">
                 {initials(me?.name)}

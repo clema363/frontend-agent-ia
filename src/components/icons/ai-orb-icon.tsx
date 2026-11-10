@@ -31,3 +31,24 @@ export const AIOrbIcon = forwardRef<SVGSVGElement, LucideProps>(
 ) as unknown as LucideIcon
 
 AIOrbIcon.displayName = 'AIOrbIcon'
+
+// Same orb, drawn to sit with the Phosphor nav icons: thinner line when idle,
+// and a solid head with the eyes cut out when its page is active (weight="fill").
+export function AIOrbNavIcon({ weight = 'regular', className }: { weight?: 'regular' | 'fill'; className?: string }) {
+  if (weight === 'fill') {
+    return (
+      <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+        <path
+          fillRule="evenodd"
+          d="M12 1.25a10.75 10.75 0 1 0 0 21.5 10.75 10.75 0 0 0 0-21.5ZM9 8.5a1 1 0 0 1 1 1v3a1 1 0 1 1-2 0v-3a1 1 0 0 1 1-1Zm6 0a1 1 0 0 1 1 1v3a1 1 0 1 1-2 0v-3a1 1 0 0 1 1-1Z"
+        />
+      </svg>
+    )
+  }
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" className={className} aria-hidden="true">
+      <circle cx="12" cy="12" r="9.75" />
+      <path d="M9 9.5v3M15 9.5v3" />
+    </svg>
+  )
+}

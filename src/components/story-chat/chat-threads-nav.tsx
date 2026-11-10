@@ -1,23 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ChevronRight, FolderOpen, MoreHorizontal, PanelLeftClose, PanelLeftOpen, Pencil, Plus, Search, Trash2 } from 'lucide-react'
+import { ChevronDown, CircleAlert, FolderCode, MoreHorizontal, PanelLeftClose, PanelLeftOpen, Pencil, Plus, Search, SquarePen, Trash2 } from 'lucide-react'
 import AILoader from '@/components/smoothui/ai-loader'
 import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
-import {
-  SidebarGroup,
-  SidebarGroupAction,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuAction,
-  SidebarMenuButton,
-  SidebarMenuItem,
-} from '@/components/ui/sidebar'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import type { ChatThread } from '@/lib/story-chat'
-import { pendingDecision, relativeTime, threadIsRunning } from '@/lib/story-chat'
+import { pendingDecision, threadIsRunning } from '@/lib/story-chat'
 import { cn } from '@/lib/utils'
 
 type ChatThreadsNavProps = {
@@ -36,8 +26,8 @@ const CLOSED_KEY = 'atlas.storyChat.closedProjects'
 // Chats shown per project before "Voir plus", like Codex's sidebar.
 const RECENT_LIMIT = 5
 
-// Secondary navbar of the story chat, built on the same shadcn sidebar parts as the app sidebar:
-// open chats grouped by project, searchable, collapsible to an icon rail.
+// Secondary navbar of the story chat, styled like a code editor's thread list:
+// open chats grouped by project, one line each, searchable, collapsible to an icon rail.
 // Only the agent signals (orb, loader) come from SmoothUI.
 export function ChatThreadsNav({ threads, projects, activeId, collapsed, onToggleCollapsed, onSelect, onNewChat, onRename, onDelete }: ChatThreadsNavProps) {
   const [query, setQuery] = useState('')
@@ -129,33 +119,28 @@ export function ChatThreadsNav({ threads, projects, activeId, collapsed, onToggl
 
   return (
     <aside className="flex h-full w-64 shrink-0 flex-col border-r bg-sidebar text-sidebar-foreground">
-      <div className="flex flex-col gap-2 p-2">
-        <div className="flex items-center justify-between pl-2">
-          <span className="text-sm font-medium">Chats</span>
-          <Button variant="ghost" size="icon-sm" className="text-muted-foreground" onClick={onToggleCollapsed} aria-label="Replier les chats">
-            <PanelLeftClose />
-          </Button>
-        </div>
-        <Button variant="outline" className="w-full justify-start" onClick={() => onNewChat()}>
-          <Plus /> Nouveau chat
-        </Button>
-        <div className="relative">
-          <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-          <Input
+      {/* Top bar: a borderless search field with the actions as plain icons, like a code editor's thread list. */}
+      <div className="flex items-center gap-1 px-3 pt-3 pb-2">
+        <label className="flex min-w-0 flex-1 items-center gap-2 text-muted-foreground">
+          <Search className="size-4 shrink-0" aria-hidden="true" />
+          <input
             ref={searchRef}
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Rechercher un chat"
+            onKeyDown={(event) => { if (event.key === 'Escape') setQuery('') }}
+            placeholder="Rechercher"
             aria-label="Rechercher un chat"
-            className="h-8 bg-background pl-8"
+            className="h-7 min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground [&::-webkit-search-cancel-button]:hidden"
           />
-        </div>
+        </label>
+        <IconAction label="Nouveau chat" onClick={() => onNewChat()}><SquarePen /></IconAction>
+        <IconAction label="Replier les chats" onClick={onToggleCollapsed}><PanelLeftClose /></IconAction>
       </div>
 
-      <nav aria-label="Chats par projet" className="min-h-0 flex-1 overflow-y-auto">
+      <nav aria-label="Chats par projet" className="min-h-0 flex-1 overflow-y-auto px-2 pb-3">
         {groups.length === 0 && (
-          <p className="px-4 py-6 text-center text-xs text-muted-foreground">
+          <p className="px-2 py-6 text-center text-xs text-muted-foreground">
             {query ? `Aucun chat ne correspond à « ${query} ».` : 'Aucun chat ouvert.'}
           </p>
         )}
@@ -165,33 +150,40 @@ export function ChatThreadsNav({ threads, projects, activeId, collapsed, onToggl
             // Searching opens every group so matches are never hidden.
             open={Boolean(query.trim()) || isOpen(projectId)}
             onOpenChange={(open) => setOpen(projectId, open)}
-            render={<SidebarGroup className="py-1" />}
+            className="group/project mt-3 first:mt-0"
           >
-            <SidebarGroupLabel
-              render={<CollapsibleTrigger />}
-              className="group/label w-full cursor-pointer gap-2 pr-8 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-            >
-              <ChevronRight className="transition-transform duration-200 group-data-[panel-open]/label:rotate-90" />
-              <FolderOpen />
-              <span className="truncate">{projectName(projectId)}</span>
-              <span className="ml-auto font-normal tabular-nums text-muted-foreground">{items.length}</span>
-            </SidebarGroupLabel>
-            <SidebarGroupAction onClick={() => onNewChat(projectId)} aria-label={`Nouveau chat dans ${projectName(projectId)}`} className="top-2.5">
-              <Plus />
-            </SidebarGroupAction>
+            <div className="relative flex items-center">
+              <CollapsibleTrigger className="group/label flex h-8 w-full min-w-0 items-center gap-2.5 rounded-md px-2 text-left text-sm font-medium outline-none hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-sidebar-ring">
+                <FolderCode className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                <span className="truncate">{projectName(projectId)}</span>
+                <ChevronDown
+                  className="ml-auto size-3.5 shrink-0 text-muted-foreground -rotate-90 transition-transform duration-200 group-data-[panel-open]/label:rotate-0"
+                  aria-hidden="true"
+                />
+              </CollapsibleTrigger>
+              <button
+                type="button"
+                onClick={() => onNewChat(projectId)}
+                aria-label={`Nouveau chat dans ${projectName(projectId)}`}
+                className="absolute right-7 flex size-6 items-center justify-center rounded-md text-muted-foreground opacity-0 outline-none group-hover/project:opacity-100 hover:bg-sidebar-border hover:text-foreground focus-visible:opacity-100 [&_svg]:size-3.5"
+              >
+                <Plus />
+              </button>
+            </div>
             <CollapsibleContent className="h-(--collapsible-panel-height) overflow-hidden transition-[height] duration-200 ease-out data-[ending-style]:h-0 data-[starting-style]:h-0">
-            <SidebarGroupContent>
-              <SidebarMenu>
+              <ul className="flex flex-col gap-0.5 pt-0.5">
                 {(expanded.has(projectId) || query.trim() ? items : items.slice(0, RECENT_LIMIT)).map((thread) => {
                   const running = threadIsRunning(thread)
+                  const pending = !running && Boolean(pendingDecision(thread))
+                  const active = thread.id === activeId
                   return (
-                    <SidebarMenuItem key={thread.id}>
+                    <li key={thread.id} className="group/thread relative">
                       {renaming === thread.id ? (
                         <Input
                           autoFocus
                           defaultValue={thread.title}
                           aria-label="Nom du chat"
-                          className="h-auto bg-background py-1.5"
+                          className="h-8 bg-background pl-8.5 text-sm"
                           onBlur={(event) => { onRename(thread.id, event.target.value.trim() || thread.title); setRenaming(null) }}
                           onKeyDown={(event) => {
                             if (event.key === 'Enter') event.currentTarget.blur()
@@ -199,23 +191,44 @@ export function ChatThreadsNav({ threads, projects, activeId, collapsed, onToggl
                           }}
                         />
                       ) : (
-                        <SidebarMenuButton
-                          size="lg"
-                          isActive={thread.id === activeId}
+                        <button
+                          type="button"
                           onClick={() => onSelect(thread.id)}
                           onDoubleClick={() => setRenaming(thread.id)}
-                          className="h-auto flex-col items-start gap-0.5 py-1.5"
+                          aria-current={active ? 'page' : undefined}
+                          title={thread.storyKey ? `${thread.title} · ${thread.storyKey}` : thread.title}
+                          className={cn(
+                            'flex h-8 w-full min-w-0 items-center gap-2 rounded-md pr-2 pl-8.5 text-left text-sm outline-none hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-sidebar-ring',
+                            active ? 'bg-sidebar-accent font-medium text-sidebar-accent-foreground' : 'text-muted-foreground hover:text-sidebar-foreground',
+                          )}
                         >
-                          <span className="w-full truncate">{thread.title}</span>
-                          <span className="flex items-center gap-1.5 text-[11px] font-normal text-muted-foreground">
-                            {running ? <AILoader variant="dots" label="L’agent travaille" className="scale-75" /> : relativeTime(thread.updatedAt)}
-                            {thread.storyKey && <span className="rounded bg-muted px-1 font-mono">{thread.storyKey}</span>}
-                          </span>
-                        </SidebarMenuButton>
+                          <span className="min-w-0 flex-1 truncate">{thread.title}</span>
+                          {/* Status, then age; the age gives way to the menu on hover. */}
+                          {running && <AILoader variant="dots" label="L’agent travaille" className="shrink-0 scale-75" />}
+                          {pending && (
+                            <span className="flex shrink-0 items-center gap-1 text-xs font-medium text-amber-600 dark:text-amber-500">
+                              <CircleAlert className="size-3.5" aria-hidden="true" /> À valider
+                            </span>
+                          )}
+                          {!running && !pending && (
+                            <span className="shrink-0 text-xs tabular-nums text-muted-foreground group-hover/thread:invisible">{shortAge(thread.updatedAt)}</span>
+                          )}
+                        </button>
                       )}
                       {renaming !== thread.id && (
                         <DropdownMenu>
-                          <DropdownMenuTrigger render={<SidebarMenuAction showOnHover className="top-2" aria-label={`Actions pour ${thread.title}`} />}>
+                          <DropdownMenuTrigger
+                            render={
+                              <button
+                                type="button"
+                                aria-label={`Actions pour ${thread.title}`}
+                                className={cn(
+                                  'absolute top-1 right-1 flex size-6 items-center justify-center rounded-md text-muted-foreground outline-none hover:bg-sidebar-border hover:text-foreground focus-visible:opacity-100 data-[popup-open]:opacity-100 [&_svg]:size-4',
+                                  running || pending ? 'hidden group-hover/thread:flex data-[popup-open]:flex' : 'opacity-0 group-hover/thread:opacity-100',
+                                )}
+                              />
+                            }
+                          >
                             <MoreHorizontal />
                           </DropdownMenuTrigger>
                           <DropdownMenuContent side="right" align="start">
@@ -229,23 +242,49 @@ export function ChatThreadsNav({ threads, projects, activeId, collapsed, onToggl
                           </DropdownMenuContent>
                         </DropdownMenu>
                       )}
-                    </SidebarMenuItem>
+                    </li>
                   )
                 })}
                 {items.length > RECENT_LIMIT && !query.trim() && (
-                  <SidebarMenuItem>
-                    <SidebarMenuButton size="sm" className="text-muted-foreground" onClick={() => toggleExpanded(projectId)}>
+                  <li>
+                    <button
+                      type="button"
+                      onClick={() => toggleExpanded(projectId)}
+                      className="flex h-7 w-full items-center rounded-md pl-8.5 text-left text-xs text-muted-foreground outline-none hover:bg-sidebar-accent hover:text-sidebar-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+                    >
                       {expanded.has(projectId) ? 'Voir moins' : `Voir ${items.length - RECENT_LIMIT} de plus`}
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
+                    </button>
+                  </li>
                 )}
-              </SidebarMenu>
-            </SidebarGroupContent>
+              </ul>
             </CollapsibleContent>
           </Collapsible>
         ))}
       </nav>
     </aside>
+  )
+}
+
+// Compact age for the thread list: "5 min", "16h", "3j".
+function shortAge(at: number) {
+  const minutes = Math.max(0, Math.round((Date.now() - at) / 60000))
+  if (minutes < 1) return 'à l’instant'
+  if (minutes < 60) return `${minutes} min`
+  const hours = Math.round(minutes / 60)
+  if (hours < 24) return `${hours}h`
+  return `${Math.round(hours / 24)}j`
+}
+
+function IconAction({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={<Button variant="ghost" size="icon-sm" onClick={onClick} aria-label={label} className="text-muted-foreground hover:text-foreground" />}
+      >
+        {children}
+      </TooltipTrigger>
+      <TooltipContent side="bottom">{label}</TooltipContent>
+    </Tooltip>
   )
 }
 
