@@ -14,6 +14,10 @@ export type StoryDraft = {
   iWant: string
   soThat: string
   criteria: string[]
+  // Raw need the agent derived this story from, sent as `need` to POST /us.
+  rawNeed: string
+  // Per-story human verdict; only accepted stories are created on the board.
+  verdict?: 'accepted' | 'rejected'
 }
 
 export type DraftDecision = 'create' | 'refine' | 'discard'
@@ -79,6 +83,7 @@ export function buildDraftTurn(id: string, prompt: string): AgentTurn {
       'Les erreurs de validation sont affichées sous le champ concerné',
       'L’action est tracée dans le journal',
     ],
+    rawNeed: `${prompt.trim()}\n→ Partie ${index + 1} : ${steps[index % steps.length].toLowerCase()} ${topic} (${personas[index % personas.length]}).`,
   }))
   return {
     id,
@@ -92,7 +97,7 @@ export function buildDraftTurn(id: string, prompt: string): AgentTurn {
       { id: 'split', label: `Découper en ${drafts.length} user stories`, status: 'pending' },
       { id: 'criteria', label: 'Rédiger les critères d’acceptation', status: 'pending' },
     ],
-    intro: `Voici ${drafts.length} propositions. Tu peux les modifier, en retirer, puis les envoyer dans la colonne **To author** du kanban.`,
+    intro: `Voici ${drafts.length} propositions. Accepte ou rejette chacune, modifie-les si besoin, puis les envoyer dans la colonne **To author** du kanban.`,
     drafts,
   }
 }

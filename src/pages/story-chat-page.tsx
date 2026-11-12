@@ -367,7 +367,12 @@ function DraftsBlock({ turn, onChange }: { turn: DraftsTurn; onChange: (turn: Ag
         </AnimatePresence>
       </div>
       {turn.status === 'done' && turn.drafts.length > 0 && (
-        <DraftsDecision count={turn.drafts.length} decision={turn.decision} onDecide={(decision) => onChange({ ...turn, decision })} />
+        <DraftsDecision
+          drafts={turn.drafts}
+          decision={turn.decision}
+          onAcceptAll={() => onChange({ ...turn, drafts: turn.drafts.map((d) => (d.verdict ? d : { ...d, verdict: 'accepted' })) })}
+          onDecide={(decision) => onChange({ ...turn, decision })}
+        />
       )}
       {turn.decision === 'create' && (
         <Button size="sm" variant="outline" className="self-start" render={<Link to="/kanban" />}>
@@ -404,24 +409,38 @@ const decisionLabels: Record<NonNullable<DraftsTurn['decision']>, string> = {
 }
 
 // Human checkpoint before the drafts reach the board; once decided, it shrinks to a one-line receipt.
-function DraftsDecision({ count, decision, onDecide }: { count: number; decision?: DraftsTurn['decision']; onDecide: (decision: NonNullable<DraftsTurn['decision']>) => void }) {
-  const stories = `${count} user ${count > 1 ? 'stories' : 'story'}`
+// Only the stories accepted one by one are created; undecided ones block the button.
+function DraftsDecision({ drafts, decision, onAcceptAll, onDecide }: {
+  drafts: DraftsTurn['drafts']
+  decision?: DraftsTurn['decision']
+  onAcceptAll: () => void
+  onDecide: (decision: NonNullable<DraftsTurn['decision']>) => void
+}) {
+  const accepted = drafts.filter((draft) => draft.verdict === 'accepted').length
+  const rejected = drafts.filter((draft) => draft.verdict === 'rejected').length
+  const undecided = drafts.length - accepted - rejected
+  const plural = (n: number) => `${n} user ${n > 1 ? 'stories' : 'story'}`
   if (decision) {
     return (
       <p className="flex items-center gap-2 text-sm text-muted-foreground">
         <Badge variant={decision === 'discard' ? 'outline' : 'secondary'}>{decisionLabels[decision]}</Badge>
-        {decision === 'create' && stories}
+        {decision === 'create' && plural(accepted || drafts.length)}
       </p>
     )
   }
   return (
     <Card size="sm">
       <CardHeader>
-        <CardTitle>Créer {stories} sur le kanban ?</CardTitle>
-        <CardDescription>Elles partent dans la colonne To author, chez l’agent d’authoring.</CardDescription>
+        <CardTitle>{accepted ? `Créer ${plural(accepted)} sur le kanban ?` : 'Accepte les stories à créer'}</CardTitle>
+        <CardDescription className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <span className="flex items-center gap-1.5"><span className="size-1.5 rounded-full bg-emerald-500" />{accepted} acceptée{accepted > 1 ? 's' : ''}</span>
+          <span className="flex items-center gap-1.5"><span className="size-1.5 rounded-full bg-muted-foreground/50" />{rejected} rejetée{rejected > 1 ? 's' : ''}</span>
+          {undecided > 0 && <span className="flex items-center gap-1.5"><span className="size-1.5 rounded-full bg-amber-500" />{undecided} à trancher</span>}
+        </CardDescription>
       </CardHeader>
       <CardFooter className="flex flex-wrap gap-2">
-        <Button size="sm" onClick={() => onDecide('create')}>Créer dans To author</Button>
+        <Button size="sm" disabled={accepted === 0 || undecided > 0} onClick={() => onDecide('create')}>Créer dans To author</Button>
+        {undecided > 0 && <Button size="sm" variant="outline" onClick={onAcceptAll}>Tout accepter</Button>}
         <Button size="sm" variant="outline" onClick={() => onDecide('refine')}>Continuer à affiner</Button>
         <Button size="sm" variant="ghost" className="ml-auto text-destructive hover:text-destructive" onClick={() => onDecide('discard')}>Tout abandonner</Button>
       </CardFooter>
